@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-8">
+    <!-- Create Tournament Card -->
+    {% if user %}
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
+        <h2 class="text-xl font-bold mb-4 text-indigo-400">Create New Tournament</h2>
+        <form method="POST" class="flex gap-4">
+            <input type="text" name="name" placeholder="e.g., Summer Pong Championship 2026" required class="flex-grow bg-gray-900 border border-gray-700 rounded px-4 py-2 text-white">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 font-bold px-6 py-2 rounded-lg">Create</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Tournaments List -->
+    <div class="space-y-6">
+        <h2 class="text-2xl font-bold text-gray-200">Active & Past Tournaments</h2>
+        {% for t in tournaments %}
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white">{{ t.name }}</h3>
+                <span class="text-xs uppercase bg-indigo-900 text-indigo-300 px-2.5 py-1 rounded-full font-semibold">{{ t.status }}</span>
+            </div>
+            
+            <h4 class="text-sm font-semibold text-gray-400 mb-2">Tournament Matches:</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {% for g in t.games %}
+                <div class="bg-gray-900 p-3 rounded border border-gray-700 text-sm flex justify-between">
+                    <span>{{ g.player1.username }} vs {{ g.player2.username }}</span>
+                    <span class="font-mono font-bold">{{ g.score1 }} - {{ g.score2 }}</span>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm italic">No matches played in this tournament yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-gray-500">No tournaments created yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

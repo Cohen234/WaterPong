@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl">
+    <h2 class="text-2xl font-bold mb-6 text-indigo-400">Record Game Match</h2>
+    
+    <form method="POST" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium mb-1 text-gray-300">You (Player 1)</label>
+            <input type="text" disabled value="{{ user.username }}" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-gray-400">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1 text-gray-300">Your Score</label>
+            <input type="number" min="0" name="score1" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1 text-gray-300">Opponent (Player 2)</label>
+            <select name="player2_id" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                <option value="" disabled selected>Select an opponent</option>
+                {% for p in players %}
+                <option value="{{ p.id }}">{{ p.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1 text-gray-300">Opponent's Score</label>
+            <input type="number" min="0" name="score2" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1 text-gray-300">Tournament (Optional)</label>
+            <select name="tournament_id" class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+                <option value="">None (Regular Match)</option>
+                {% for t in tournaments %}
+                <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-2 px-4 rounded-lg mt-4">Submit Match</button>
+    </form>
+</div>
+{% endblock %}

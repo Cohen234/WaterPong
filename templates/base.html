@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+        <a href="/" class="text-2xl font-bold text-indigo-400 hover:text-indigo-300">🏓 PongTracker</a>
+        <div class="flex items-center space-x-6">
+            <a href="/" class="hover:text-indigo-400">Leaderboard</a>
+            <a href="/tournaments" class="hover:text-indigo-400">Tournaments</a>
+            {% if user %}
+                <a href="/game/log" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-medium">Log Game</a>
+                <span class="text-gray-400">Hi, <strong class="text-white">{{ user.username }}</strong></span>
+                <a href="/logout" class="text-red-400 hover:text-red-300 text-sm">Logout</a>
+            {% else %}
+                <a href="/login" class="hover:text-indigo-400">Login</a>
+                <a href="/register" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-medium">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="max-w-4xl mx-auto w-full mt-4 px-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-4 rounded-lg text-sm bg-gray-800 border-l-4 border-indigo-500 text-gray-200">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-6 max-w-5xl">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

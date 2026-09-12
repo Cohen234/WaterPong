@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Live Leaderboard -->
+    <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+        <h2 class="text-xl font-bold mb-4 text-indigo-400 flex items-center gap-2">
+            🏆 Live Leaderboard
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-gray-300">
+                <thead class="bg-gray-700 text-gray-400 uppercase text-xs">
+                    <tr>
+                        <th class="p-3">Rank</th>
+                        <th class="p-3">Player</th>
+                        <th class="p-3">Wins</th>
+                        <th class="p-3">Losses</th>
+                        <th class="p-3">Win %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in leaderboard %}
+                    <tr class="border-b border-gray-700 hover:bg-gray-750">
+                        <td class="p-3 font-bold">{{ loop.index }}</td>
+                        <td class="p-3 font-medium text-white">{{ row.username }}</td>
+                        <td class="p-3 text-green-400">{{ row.wins }}</td>
+                        <td class="p-3 text-red-400">{{ row.losses }}</td>
+                        <td class="p-3 font-semibold text-indigo-300">{{ row.win_rate }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="p-4 text-center text-gray-500">No players registered yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Match History -->
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+        <h2 class="text-xl font-bold mb-4 text-indigo-400">⚡ Recent Games</h2>
+        <div class="space-y-3">
+            {% for g in games %}
+            <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-sm flex justify-between items-center">
+                <div class="flex-1">
+                    <span class="{% if g.winner.username == g.player1.username %}text-green-400 font-bold{% else %}text-gray-400{% endif %}">
+                        {{ g.player1.username }}
+                    </span>
+                    <span class="text-gray-500 mx-1">vs</span>
+                    <span class="{% if g.winner.username == g.player2.username %}text-green-400 font-bold{% else %}text-gray-400{% endif %}">
+                        {{ g.player2.username }}
+                    </span>
+                </div>
+                <div class="font-mono text-base font-bold bg-gray-800 px-2 py-1 rounded">
+                    {{ g.score1 }} - {{ g.score2 }}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-sm">No games recorded yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
