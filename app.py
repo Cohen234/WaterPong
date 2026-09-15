@@ -25,6 +25,10 @@ def get_current_user():
 def index():
     user = get_current_user()
 
+    # Redirect unauthenticated users to the login page
+    if not user:
+        return redirect(url_for("login"))
+
     # Fetch live leaderboard view
     leaderboard_res = supabase.from_("leaderboard").select("*").execute()
     leaderboard = leaderboard_res.data if leaderboard_res.data else []
@@ -93,48 +97,81 @@ def logout():
     return redirect(url_for("index"))
 
 
-@app.route("/game/log", methods=["GET", "POST"])
-def log_game():
+@app.route("/game/setup", methods=["GET", "POST"])
+def game_setup():
     user = get_current_user()
     if not user:
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        p1_id = user["id"]
+        p1_id = request.form.get("player1_id")
         p2_id = request.form.get("player2_id")
-        score1 = int(request.form.get("score1"))
-        score2 = int(request.form.get("score2"))
-        tournament_id = request.form.get("tournament_id") or None
+
+        if not p1_id or not p2_id:
+            flash("You must select two players!", "warning")
+            return redirect(url_for("game_setup"))
 
         if p1_id == p2_id:
-            flash("You cannot play against yourself!", "warning")
-            return redirect(url_for("log_game"))
+            flash("A player cannot play against themselves!", "warning")
+            return redirect(url_for("game_setup"))
 
-        winner_id = p1_id if score1 > score2 else p2_id
+        # Redirect to the active game screen with both player IDs
+        return redirect(url_for("game_active", p1_id=p1_id, p2_id=p2_id))
 
-        game_data = {
-            "player1_id": p1_id,
-            "player2_id": p2_id,
-            "score1": score1,
-            "score2": score2,
-            "winner_id": winner_id,
-            "tournament_id": tournament_id
-        }
-
-        supabase.from_("games").insert(game_data).execute()
-        flash("Game logged successfully!", "success")
-        return redirect(url_for("index"))
-
-    # Fetch other players for selection dropdown
-    players_res = supabase.from_("profiles").select("*").neq("id", user["id"]).execute()
+    # Fetch ALL players for the dropdowns (no exclusions)
+    players_res = supabase.from_("profiles").select("*").execute()
     players = players_res.data or []
 
-    # Fetch active tournaments
-    tournaments_res = supabase.from_("tournaments").select("*").eq("status", "active").execute()
-    tournaments = tournaments_res.data or []
+    return render_template("game_setup.html", user=user, players=players)
 
-    return render_template("log_game.html", user=user, players=players, tournaments=tournaments)
+@app.route("/game/active/<p1_id>/<p2_id>")
+def game_active(p1_id, p2_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
 
+    # Fetch usernames to display on the clickable buttons
+    p1 = supabase.from_("profiles").select("*").eq("id", p1_id).single().execute().data
+    p2 = supabase.from_("profiles").select("*").eq("id", p2_id).single().execute().data
+
+    return render_template("game_active.html", user=user, p1=p1, p2=p2)
+
+
+@app.route("/game/submit", methods=["POST"])
+def game_submit():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    p1_id = request.form.get("p1_id")
+    p2_id = request.form.get("p2_id")
+    winner_id = request.form.get("winner_id")
+    cups_won_by = int(request.form.get("cups_won_by", 0))
+
+    if not winner_id:
+        flash("You must select a winner!", "danger")
+        return redirect(url_for("game_active", p1_id=p1_id, p2_id=p2_id))
+
+    # Assuming a standard 10-cup game to calculate database scores
+    if winner_id == p1_id:
+        score1 = 10
+        score2 = max(0, 10 - cups_won_by)
+    else:
+        score2 = 10
+        score1 = max(0, 10 - cups_won_by)
+
+    game_data = {
+        "player1_id": p1_id,
+        "player2_id": p2_id,
+        "score1": score1,
+        "score2": score2,
+        "winner_id": winner_id,
+        "tournament_id": None  # Removed tournament tracking for now
+    }
+
+    supabase.from_("games").insert(game_data).execute()
+    flash("Game logged successfully!", "success")
+    return redirect(url_for("index"))
 
 @app.route("/tournaments", methods=["GET", "POST"])
 def tournaments():
