@@ -8,27 +8,41 @@
             🏆 Live Leaderboard
         </h2>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-gray-300">
+            <table id="leaderboardTable" class="w-full text-left text-sm text-gray-300">
                 <thead class="bg-gray-700 text-gray-400 uppercase text-xs">
                     <tr>
                         <th class="p-3">Rank</th>
+                        <!-- Added sorting triggers to the headers -->
                         <th class="p-3">Player</th>
-                        <th class="p-3">Wins</th>
-                        <th class="p-3">Losses</th>
-                        <th class="p-3">Win %</th>
+                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(2, 'number')">Elo ↕</th>
+                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(3, 'number')">Games Played ↕</th>
+                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(4, 'number')">Wins ↕</th>
+                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(5, 'number')">Losses ↕</th>
+                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(6, 'number')">Win % ↕</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in leaderboard %}
                     <tr class="border-b border-gray-700 hover:bg-gray-750">
                         <td class="p-3 font-bold">{{ loop.index }}</td>
-                        <td class="p-3 font-medium text-white">{{ row.username }}</td>
+
+                        <td class="p-3 font-medium text-white">
+                            <a href="/profile/{{ row.user_id }}" class="hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-4">
+                                {{ row.username }}
+                            </a>
+                        </td>
+
+                        <td class="p-3 font-bold text-yellow-400">{{ row.elo }}</td>
+
+                        <!-- New Games Played Column -->
+                        <td class="p-3 font-bold text-gray-300">{{ row.total_games }}</td>
+
                         <td class="p-3 text-green-400">{{ row.wins }}</td>
                         <td class="p-3 text-red-400">{{ row.losses }}</td>
                         <td class="p-3 font-semibold text-indigo-300">{{ row.win_rate }}%</td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="p-4 text-center text-gray-500">No players registered yet.</td></tr>
+                    <tr id="empty-row"><td colspan="7" class="p-4 text-center text-gray-500">No players registered yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -36,9 +50,10 @@
     </div>
 
     <!-- Recent Match History -->
-    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+    <!-- Recent Match History -->
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl flex flex-col h-full">
         <h2 class="text-xl font-bold mb-4 text-indigo-400">⚡ Recent Games</h2>
-        <div class="space-y-3">
+        <div class="space-y-3 flex-grow">
             {% for g in games %}
             <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-sm flex justify-between items-center">
                 <div class="flex-1">
@@ -58,7 +73,58 @@
             <p class="text-gray-500 text-sm">No games recorded yet.</p>
             {% endfor %}
         </div>
+
+        <!-- NEW: View More Button appears if there are 6 games -->
+        {% if games|length == 6 %}
+        <div class="mt-4 pt-4 border-t border-gray-700">
+            <a href="/catalog" class="block w-full text-center bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg transition-colors">
+                View Full Game Catalog
+            </a>
+        </div>
+        {% endif %}
     </div>
 
 </div>
+
+<!-- Interactive Sorting Logic -->
+<script>
+    let currentSortColumn = -1;
+    let sortDescending = true;
+
+    function sortTable(columnIndex, type) {
+        const table = document.getElementById("leaderboardTable");
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+
+        // Don't try to sort if the table is empty
+        if (rows.length <= 1 && rows[0].id === 'empty-row') return;
+
+        // Toggle sort direction if clicking the same column, otherwise default to descending (highest first)
+        if (currentSortColumn === columnIndex) {
+            sortDescending = !sortDescending;
+        } else {
+            sortDescending = true;
+            currentSortColumn = columnIndex;
+        }
+
+        rows.sort((a, b) => {
+            let cellA = a.querySelectorAll("td")[columnIndex].innerText.replace('%', '').trim();
+            let cellB = b.querySelectorAll("td")[columnIndex].innerText.replace('%', '').trim();
+
+            if (type === 'number') {
+                cellA = parseFloat(cellA) || 0;
+                cellB = parseFloat(cellB) || 0;
+                return sortDescending ? (cellB - cellA) : (cellA - cellB);
+            } else {
+                return sortDescending ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+            }
+        });
+
+        // Re-append rows in the new order and update the "Rank" column (index 0) dynamically
+        rows.forEach((row, index) => {
+            row.querySelectorAll("td")[0].innerText = index + 1;
+            tbody.appendChild(row);
+        });
+    }
+</script>
 {% endblock %}

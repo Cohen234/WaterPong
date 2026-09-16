@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-12">
+    
+    <div class="flex items-center justify-between border-b border-gray-700 pb-4">
+        <h1 class="text-4xl font-extrabold text-white">Game Catalog</h1>
+        <a href="/" class="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    {% for date, day_games in grouped_games.items() %}
+    <div class="space-y-6">
+        <!-- Date Header -->
+        <h2 class="text-2xl font-bold text-gray-400 flex items-center gap-3">
+            📅 {{ date }}
+            <span class="h-px bg-gray-700 flex-grow"></span>
+        </h2>
+
+        <!-- Games Grid (Left to Right) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for g in day_games %}
+            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex flex-col justify-center items-center text-center transition hover:border-indigo-500">
+                
+                <!-- Player vs Player -->
+                <div class="text-lg mb-4 w-full flex justify-center items-center gap-3">
+                    <span class="truncate max-w-[40%] {% if g.winner.username == g.player1.username %}text-green-400 font-bold text-xl{% else %}text-gray-400{% endif %}">
+                        {{ g.player1.username }}
+                    </span>
+                    <span class="text-gray-600 font-bold text-sm">VS</span>
+                    <span class="truncate max-w-[40%] {% if g.winner.username == g.player2.username %}text-green-400 font-bold text-xl{% else %}text-gray-400{% endif %}">
+                        {{ g.player2.username }}
+                    </span>
+                </div>
+
+                <!-- Score Below -->
+                <div class="font-mono text-3xl font-bold bg-gray-900 px-6 py-2 rounded-lg text-white border border-gray-700 shadow-inner">
+                    {{ g.score1 }} - {{ g.score2 }}
+                </div>
+                
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <p class="text-2xl text-gray-500">No games have been logged yet.</p>
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

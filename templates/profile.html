@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    
+    <!-- Header Card -->
+    <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl flex justify-between items-center">
+        <div>
+            <h1 class="text-4xl font-bold text-white mb-2">{{ stats.username }}</h1>
+            <span class="bg-indigo-900 text-indigo-300 px-3 py-1 rounded-full text-sm font-semibold uppercase tracking-wider">
+                Current Elo: {{ stats.elo }}
+            </span>
+        </div>
+        <div class="text-right">
+            <p class="text-gray-400 text-sm uppercase">Active Streak</p>
+            <p class="text-3xl font-bold {% if 'W' in streak %}text-green-400{% else %}text-red-400{% endif %}">
+                {{ streak }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center">
+            <p class="text-gray-400 text-sm mb-1">Win Rate</p>
+            <p class="text-2xl font-bold text-indigo-400">{{ stats.win_rate }}%</p>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center">
+            <p class="text-gray-400 text-sm mb-1">Total Games</p>
+            <p class="text-2xl font-bold text-white">{{ stats.total_games }}</p>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center">
+            <p class="text-gray-400 text-sm mb-1">Overall W/L</p>
+            <p class="text-2xl font-bold"><span class="text-green-400">{{ stats.wins }}</span> - <span class="text-red-400">{{ stats.losses }}</span></p>
+        </div>
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 text-center">
+            <p class="text-gray-400 text-sm mb-1">Tournament W/L</p>
+            <p class="text-2xl font-bold"><span class="text-green-400">{{ t_wins }}</span> - <span class="text-red-400">{{ t_losses }}</span></p>
+        </div>
+    </div>
+
+    <!-- Achievements & Trophies -->
+    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+        <h2 class="text-xl font-bold mb-4 text-yellow-400 flex items-center gap-2">🏆 Tournament Achievements</h2>
+        <div class="flex flex-wrap gap-3">
+            {% for trophy in trophies %}
+                <div class="bg-gray-900 border border-yellow-500/30 px-4 py-2 rounded-lg flex items-center gap-2">
+                    <span>🥇</span>
+                    <span class="text-sm font-bold text-yellow-200">{{ trophy }}</span>
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-sm italic">No tournament wins yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Head-to-Head Dropdown -->
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl h-fit">
+            <details class="group">
+                <summary class="flex justify-between items-center font-bold cursor-pointer list-none text-xl text-white">
+                    <span>⚔️ Head-to-Head Records</span>
+                    <span class="transition group-open:rotate-180">
+                        <svg fill="none" height="24" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                </summary>
+                <div class="text-gray-400 mt-4 space-y-2 max-h-64 overflow-y-auto pr-2">
+                    {% for opp_name, record in h2h.items() %}
+                        <div class="flex justify-between bg-gray-900 p-3 rounded border border-gray-700">
+                            <span class="font-medium text-gray-200">vs {{ opp_name }}</span>
+                            <span class="font-mono text-sm font-bold">
+                                <span class="text-green-400">{{ record.wins }}</span> - <span class="text-red-400">{{ record.losses }}</span>
+                            </span>
+                        </div>
+                    {% else %}
+                        <p class="text-gray-500 text-sm">No opponents played yet.</p>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+
+        <!-- Match History -->
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+            <h2 class="text-xl font-bold mb-4 text-white">Recent Matches</h2>
+            <div class="space-y-3">
+                {% for g in games %}
+                <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 flex justify-between items-center text-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-base {% if g.winner_id == stats.user_id %}text-green-400{% else %}text-red-400{% endif %}">
+                            {% if g.winner_id == stats.user_id %}W{% else %}L{% endif %}
+                        </span>
+                        <span class="text-gray-300">
+                            {{ g.player1.username }} vs {{ g.player2.username }}
+                        </span>
+                    </div>
+                    <div class="font-mono font-bold bg-gray-800 px-2 py-1 rounded">
+                        {{ g.score1 }}-{{ g.score2 }}
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-sm">No games played yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

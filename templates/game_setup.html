@@ -6,7 +6,8 @@
     <form method="POST" class="space-y-4">
         <div>
             <label class="block text-sm font-medium mb-1 text-gray-300">Player 1</label>
-            <select name="player1_id" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+            <!-- Added id="player1_id" -->
+            <select name="player1_id" id="player1_id" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white disabled:text-gray-500">
                 <option value="" disabled selected>Select Player 1</option>
                 {% for p in players %}
                 <option value="{{ p.id }}">{{ p.username }}</option>
@@ -16,7 +17,8 @@
 
         <div>
             <label class="block text-sm font-medium mb-1 text-gray-300">Player 2</label>
-            <select name="player2_id" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white">
+            <!-- Added id="player2_id" -->
+            <select name="player2_id" id="player2_id" required class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white disabled:text-gray-500">
                 <option value="" disabled selected>Select Player 2</option>
                 {% for p in players %}
                 <option value="{{ p.id }}">{{ p.username }}</option>
@@ -27,4 +29,46 @@
         <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-3 px-4 rounded-lg mt-6 text-lg transition-colors">Start Game</button>
     </form>
 </div>
+
+<!-- JavaScript to prevent duplicate player selection -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const p1Select = document.getElementById('player1_id');
+        const p2Select = document.getElementById('player2_id');
+
+        function updateDropdowns() {
+            const p1Value = p1Select.value;
+            const p2Value = p2Select.value;
+
+            // Step 1: Re-enable all options in both dropdowns
+            Array.from(p1Select.options).forEach(opt => opt.disabled = false);
+            Array.from(p2Select.options).forEach(opt => opt.disabled = false);
+
+            // Keep the default placeholder ("Select Player...") disabled
+            p1Select.options[0].disabled = true;
+            p2Select.options[0].disabled = true;
+
+            // Step 2: Disable P1's choice in P2's dropdown
+            if (p1Value) {
+                const optionToDisable = p2Select.querySelector(`option[value="${p1Value}"]`);
+                if (optionToDisable) {
+                    optionToDisable.disabled = true;
+                    // Standard browsers automatically gray out disabled options
+                }
+            }
+
+            // Step 3: Disable P2's choice in P1's dropdown
+            if (p2Value) {
+                const optionToDisable = p1Select.querySelector(`option[value="${p2Value}"]`);
+                if (optionToDisable) {
+                    optionToDisable.disabled = true;
+                }
+            }
+        }
+
+        // Run the function every time either dropdown is changed
+        p1Select.addEventListener('change', updateDropdowns);
+        p2Select.addEventListener('change', updateDropdowns);
+    });
+</script>
 {% endblock %}
