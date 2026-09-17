@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from datetime import datetime
+import random
 load_dotenv()
 
 app = Flask(__name__)
@@ -111,6 +112,65 @@ def register():
     return render_template("register.html")
 
 
+@app.route("/pong-night/setup", methods=["GET", "POST"])
+def pong_night_setup():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("welcome"))
+
+    if request.method == "POST":
+        selected_ids = request.form.getlist("players")
+
+        if len(selected_ids) < 2:
+            flash("You must select at least 2 players to start a Pong Night!", "warning")
+            return redirect(url_for("pong_night_setup"))
+
+        # Fetch selected player details
+        players_res = supabase.from_("profiles").select("id, username").in_("id", selected_ids).execute()
+        players = players_res.data
+
+        # Mathematical trick: Shuffle players and have everyone play their neighbor
+        random.shuffle(players)
+        matches = []
+        n = len(players)
+
+        if n == 2:
+            # If only 2 players, they just play a best-of-two against each other
+            matches.append({"p1": players[0], "p2": players[1]})
+            matches.append({"p1": players[1], "p2": players[0]})
+        else:
+            # Circle logic guarantees exactly 2 games per person
+            for i in range(n):
+                matches.append({
+                    "p1": players[i],
+                    "p2": players[(i + 1) % n]
+                })
+
+        session["pong_night"] = matches
+        return redirect(url_for("pong_night_active"))
+
+    players_res = supabase.from_("profiles").select("*").execute()
+    return render_template("pong_night_setup.html", user=user, players=players_res.data)
+@app.route("/pong-night/active")
+def pong_night_active():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("welcome"))
+
+    matches = session.get("pong_night", [])
+    return render_template("pong_night_active.html", user=user, matches=matches)
+@app.route("/pong-night/play/<int:match_idx>")
+def pong_night_play(match_idx):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("welcome"))
+
+    matches = session.get("pong_night", [])
+    if match_idx < 0 or match_idx >= len(matches):
+        return redirect(url_for("pong_night_active"))
+
+    match = matches[match_idx]
+    return render_template("pong_night_play.html", user=user, match=match, match_idx=match_idx)
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -180,65 +240,63 @@ def game_active(p1_id, p2_id):
     p2 = supabase.from_("profiles").select("*").eq("id", p2_id).single().execute().data
 
     return render_template("game_active.html", user=user, p1=p1, p2=p2)
+
+
 @app.route("/game/result/<int:game_id>")
 def game_result(game_id):
     user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
+    if not user: return redirect(url_for("login"))
 
-    # Fetch game data to determine winner/loser
     game = supabase.from_("games").select("*").eq("id", game_id).single().execute().data
     winner_id = game["winner_id"]
     loser_id = game["player1_id"] if winner_id == game["player2_id"] else game["player2_id"]
 
-    # Fetch up-to-date stats from leaderboard
     w_stats = supabase.from_("leaderboard").select("*").eq("user_id", winner_id).single().execute().data
     l_stats = supabase.from_("leaderboard").select("*").eq("user_id", loser_id).single().execute().data
 
-    # Retrieve old Elos from session
     old_elos = session.pop("old_elos", {})
     w_old_elo = old_elos.get(winner_id, w_stats["elo"] - 15)
     l_old_elo = old_elos.get(loser_id, l_stats["elo"] + 15)
 
+    # NEW: Check the URL for the pong night flag
+    from_pong_night = request.args.get("from_pong_night")
+
     return render_template("game_result.html",
                            w_stats=w_stats, l_stats=l_stats,
-                           w_old=w_old_elo, l_old=l_old_elo)
+                           w_old=w_old_elo, l_old=l_old_elo,
+                           from_pong_night=from_pong_night)
 
 @app.route("/game/submit", methods=["POST"])
 def game_submit():
     user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
+    if not user: return redirect(url_for("login"))
 
     p1_id = request.form.get("p1_id")
     p2_id = request.form.get("p2_id")
     winner_id = request.form.get("winner_id")
     cups_won_by = int(request.form.get("cups_won_by", 0))
+    pong_night_idx = request.form.get("pong_night_idx") # NEW: Check if from Pong Night
 
     if not winner_id:
         flash("You must select a winner!", "danger")
         return redirect(url_for("game_active", p1_id=p1_id, p2_id=p2_id))
 
-    # Fetch current Elos
-    p1_data = supabase.from_("profiles").select("elo").eq("id", p1_id).single().execute().data
-    p2_data = supabase.from_("profiles").select("elo").eq("id", p2_id).single().execute().data
+    # Calculate Elo (Keep your existing Elo logic here...)
+    p1_data = supabase.from_("leaderboard").select("elo").eq("user_id", p1_id).single().execute().data
+    p2_data = supabase.from_("leaderboard").select("elo").eq("user_id", p2_id).single().execute().data
     r1, r2 = p1_data["elo"], p2_data["elo"]
 
-    # Calculate Expected Scores
     e1 = 1 / (1 + 10 ** ((r2 - r1) / 400))
     e2 = 1 / (1 + 10 ** ((r1 - r2) / 400))
-
     s1 = 1 if winner_id == p1_id else 0
     s2 = 1 if winner_id == p2_id else 0
     k_adj = 32 * (1 + (cups_won_by / 10))
 
     new_r1 = round(r1 + k_adj * (s1 - e1))
     new_r2 = round(r2 + k_adj * (s2 - e2))
-
     score1 = 10 if winner_id == p1_id else max(0, 10 - cups_won_by)
     score2 = 10 if winner_id == p2_id else max(0, 10 - cups_won_by)
 
-    # Insert Game and fetch its ID
     game_data = {
         "player1_id": p1_id, "player2_id": p2_id,
         "score1": score1, "score2": score2,
@@ -247,12 +305,19 @@ def game_submit():
     res = supabase.from_("games").insert(game_data).execute()
     new_game_id = res.data[0]["id"]
 
-    # Update Elos
     supabase.from_("profiles").update({"elo": new_r1}).eq("id", p1_id).execute()
     supabase.from_("profiles").update({"elo": new_r2}).eq("id", p2_id).execute()
 
-    # Temporarily store old Elos to animate the count-up later
     session["old_elos"] = {p1_id: r1, p2_id: r2}
+
+    # NEW: If it was a Pong Night game, pop it from the session and pass a flag
+    if pong_night_idx is not None:
+        idx = int(pong_night_idx)
+        matches = session.get("pong_night", [])
+        if 0 <= idx < len(matches):
+            matches.pop(idx)
+            session["pong_night"] = matches
+        return redirect(url_for("game_result", game_id=new_game_id, from_pong_night="1"))
 
     return redirect(url_for("game_result", game_id=new_game_id))
 

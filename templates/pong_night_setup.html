@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-gray-800 p-8 rounded-xl border border-purple-500/50 shadow-[0_0_20px_rgba(147,51,234,0.15)]">
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-extrabold text-white">Start <span class="text-purple-400">Pong Night</span></h2>
+        <p class="text-gray-400 mt-2">Select who is playing tonight. Everyone will be assigned exactly 2 matches.</p>
+    </div>
+
+    <form method="POST">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            {% for p in players %}
+            <label class="cursor-pointer relative">
+                <input type="checkbox" name="players" value="{{ p.id }}" class="peer sr-only">
+                <div class="bg-gray-900 border-2 border-gray-700 rounded-xl p-4 text-center transition-all peer-checked:border-purple-500 peer-checked:bg-purple-900/30 peer-checked:shadow-[0_0_10px_rgba(147,51,234,0.3)]">
+                    <span class="text-white font-bold block">{{ p.username }}</span>
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl text-xl shadow-lg transition-colors">
+            Generate Matchups
+        </button>
+    </form>
+</div>
+{% endblock %}

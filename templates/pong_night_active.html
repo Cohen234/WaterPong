@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-8 border-b border-gray-700 pb-4">
+        <h2 class="text-3xl font-extrabold text-white">Pong Night <span class="text-purple-400">Queue</span></h2>
+        <a href="/" class="text-gray-400 hover:text-white">Exit</a>
+    </div>
+
+    {% if matches %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for match in matches %}
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex flex-col justify-between">
+            <div class="text-center mb-6">
+                <span class="text-xs text-purple-400 uppercase tracking-widest font-bold">Match {{ loop.index }}</span>
+                <div class="flex items-center justify-center gap-4 mt-2">
+                    <span class="text-xl font-bold text-white">{{ match.p1.username }}</span>
+                    <span class="text-gray-500 font-bold">VS</span>
+                    <span class="text-xl font-bold text-white">{{ match.p2.username }}</span>
+                </div>
+            </div>
+            <a href="/pong-night/play/{{ loop.index0 }}" class="block w-full text-center bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 rounded-lg transition-colors">
+                Play Match
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-gray-800 p-12 rounded-xl text-center border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
+        <div class="text-6xl mb-4">🏆</div>
+        <h2 class="text-3xl font-bold text-white mb-2">Pong Night Complete!</h2>
+        <p class="text-gray-400 mb-8">All generated matches have been played and logged.</p>
+        <a href="/" class="inline-block bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg">Check the Leaderboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -41,9 +41,15 @@
             <p class="text-gray-400 mt-3 font-semibold text-sm">Overall Record: {{ w_stats.wins }}W - {{ w_stats.losses }}L</p>
         </div>
 
-        <a href="/" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg">
-            Return to Dashboard
-        </a>
+        {% if from_pong_night %}
+            <a href="/pong-night/active" class="mt-8 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full transition shadow-lg">
+                Next Pool Match →
+            </a>
+        {% else %}
+            <a href="/" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg">
+                Return to Dashboard
+            </a>
+        {% endif %}
     </div>
 
     <!-- Small Loser Section (Bottom Right Corner) -->
