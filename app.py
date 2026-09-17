@@ -20,18 +20,36 @@ def get_current_user():
 
 
 # --- Routes ---
+@app.route("/welcome")
+def welcome():
+    # If they are already logged in, bounce them to the dashboard
+    if get_current_user():
+        return redirect(url_for("index"))
+    return render_template("welcome.html")
 
+@app.route("/spectator")
+def spectator():
+    # Create a dummy session for the spectator
+    session["user"] = {
+        "id": "spectator",
+        "username": "Spectator",
+        "role": "spectator"
+    }
+    flash("Entered as Spectator. You can view stats and log games for players!", "success")
+    return redirect(url_for("index"))
 @app.route("/")
 def index():
     user = get_current_user()
 
+    # 1. CHANGE THIS REDIRECT:
     if not user:
-        return redirect(url_for("login"))
+        return redirect(url_for("welcome"))
 
+    # Fetch live leaderboard view
     leaderboard_res = supabase.from_("leaderboard").select("*").execute()
     leaderboard = leaderboard_res.data if leaderboard_res.data else []
 
-    # LIMIT SET TO 6 HERE
+    # Fetch recent games with player usernames
     games_res = supabase.from_("games").select(
         "id, score1, score2, created_at, player1:player1_id(username), player2:player2_id(username), winner:winner_id(username)"
     ).order("created_at", desc=True).limit(6).execute()

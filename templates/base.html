@@ -9,16 +9,20 @@
 <body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
     <!-- Navbar -->
     <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-        <a href="/" class="text-2xl font-bold text-indigo-400 hover:text-indigo-300">🏓 PongTracker</a>
+        <a href="/" class="text-2xl font-bold text-indigo-400 hover:text-indigo-300">🏓 Guy House Pong</a>
         <div class="flex items-center space-x-6">
             {% if user %}
                 <a href="/tournaments" class="hover:text-indigo-400">Tournaments</a>
                 <a href="/game/setup" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-medium">Log Game</a>
                 <span class="text-gray-400">
                     Hi,
-                    <a href="/profile/{{ user.id }}" class="text-white font-bold hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-4 transition-colors">
-                        {{ user.username }}
-                    </a>
+                    {% if user.role == 'spectator' %}
+                        <strong class="text-white">{{ user.username }}</strong>
+                    {% else %}
+                        <a href="/profile/{{ user.id }}" class="text-white font-bold hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-4 transition-colors">
+                            {{ user.username }}
+                        </a>
+                    {% endif %}
                 </span>
                 <a href="/logout" class="text-red-400 hover:text-red-300 text-sm">Logout</a>
             {% else %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto mt-12 text-center">
+    <h1 class="text-5xl font-extrabold text-white mb-4">Welcome to <span class="text-indigo-400">PongTracker</span></h1>
+    <p class="text-xl text-gray-400 mb-12">How would you like to enter the arena?</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        
+        <!-- Player Card -->
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl flex flex-col justify-between hover:border-indigo-500 transition-all">
+            <div>
+                <div class="text-6xl mb-4">🏓</div>
+                <h2 class="text-2xl font-bold text-white mb-2">I'm a Player</h2>
+                <p class="text-gray-400 mb-8">Log in to track your Elo rating, build your win streak, and climb the live leaderboard.</p>
+            </div>
+            <div class="space-y-3">
+                <a href="/login" class="block w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-colors">Log In</a>
+                <a href="/register" class="block w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-lg transition-colors">Create Account</a>
+            </div>
+        </div>
+
+        <!-- Spectator Card -->
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl flex flex-col justify-between hover:border-green-500 transition-all">
+            <div>
+                <div class="text-6xl mb-4">👀</div>
+                <h2 class="text-2xl font-bold text-white mb-2">I'm a Spectator</h2>
+                <p class="text-gray-400 mb-8">Just here to watch? Enter the dashboard to view player profiles, monitor the leaderboard, and log games for others.</p>
+            </div>
+            <div>
+                <a href="/spectator" class="block w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg transition-colors mt-auto">Enter as Spectator</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
