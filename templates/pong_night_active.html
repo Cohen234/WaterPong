@@ -1,17 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="max-w-4xl mx-auto">
+
+    <!-- Header with End Button -->
     <div class="flex items-center justify-between mb-8 border-b border-gray-700 pb-4">
-        <h2 class="text-3xl font-extrabold text-white">Pong Night <span class="text-purple-400">Queue</span></h2>
-        <a href="/" class="text-gray-400 hover:text-white">Exit</a>
+        <h2 class="text-3xl font-extrabold text-white">Pong Night <span class="text-purple-400">Dashboard</span></h2>
+        <div class="flex gap-4">
+            <a href="/" class="text-gray-400 hover:text-white mt-1">Exit to Home</a>
+            <a href="/pong-night/end" onclick="return confirm('Are you sure you want to end Pong Night? This clears the queue.')" class="text-red-400 hover:text-red-300 font-bold border border-red-500/50 px-3 py-1 rounded transition-colors hover:bg-red-900/30">End Night</a>
+        </div>
     </div>
 
+    <!-- Active Queue -->
+    <h3 class="text-2xl font-bold text-white mb-4">Up Next</h3>
     {% if matches %}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {% for match in matches %}
         <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex flex-col justify-between">
             <div class="text-center mb-6">
-                <span class="text-xs text-purple-400 uppercase tracking-widest font-bold">Match {{ loop.index }}</span>
+                <span class="text-xs text-purple-400 uppercase tracking-widest font-bold">Match In Queue</span>
                 <div class="flex items-center justify-center gap-4 mt-2">
                     <span class="text-xl font-bold text-white">{{ match.p1.username }}</span>
                     <span class="text-gray-500 font-bold">VS</span>
@@ -28,9 +35,30 @@
     <div class="bg-gray-800 p-12 rounded-xl text-center border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
         <div class="text-6xl mb-4">🏆</div>
         <h2 class="text-3xl font-bold text-white mb-2">Pong Night Complete!</h2>
-        <p class="text-gray-400 mb-8">All generated matches have been played and logged.</p>
-        <a href="/" class="inline-block bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg">Check the Leaderboard</a>
+        <p class="text-gray-400">All generated matches have been played.</p>
     </div>
     {% endif %}
+
+    <!-- NEW: Completed Games List -->
+    {% if completed %}
+    <div class="mt-12 border-t border-gray-700 pt-8">
+        <h3 class="text-2xl font-bold text-gray-400 mb-6 flex items-center gap-2">✅ Finished Matches</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for match in completed %}
+            <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-md flex justify-between items-center">
+                <div class="flex items-center gap-3 text-lg">
+                    <span class="{% if match.winner_id == match.p1.id %}text-green-400 font-bold{% else %}text-white{% endif %}">{{ match.p1.username }}</span>
+                    <span class="text-gray-500 text-sm font-bold">VS</span>
+                    <span class="{% if match.winner_id == match.p2.id %}text-green-400 font-bold{% else %}text-white{% endif %}">{{ match.p2.username }}</span>
+                </div>
+                <div class="font-mono text-xl font-bold bg-gray-900 px-3 py-1 rounded-lg border border-gray-700 text-white">
+                    {{ match.score1 }} - {{ match.score2 }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

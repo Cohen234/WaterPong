@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+{% if active_pong_night %}
+    <div class="mb-8">
+        <a href="/pong-night/active" class="block w-full bg-purple-900 border-2 border-purple-500 hover:bg-purple-800 text-white text-center py-5 rounded-xl shadow-[0_0_25px_rgba(147,51,234,0.4)] transition-all group">
+            <h2 class="text-3xl font-extrabold flex items-center justify-center gap-3">
+                🍻 A Pong Night is Active!
+            </h2>
+            <p class="text-purple-300 text-lg font-medium mt-1 group-hover:underline">Click here to view the Queue & Live Games →</p>
+        </a>
+    </div>
+    {% endif %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
     
     <!-- Live Leaderboard -->

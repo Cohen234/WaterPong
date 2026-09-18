@@ -41,23 +41,25 @@ def spectator():
 @app.route("/")
 def index():
     user = get_current_user()
-
-    # 1. CHANGE THIS REDIRECT:
     if not user:
         return redirect(url_for("welcome"))
 
-    # Fetch live leaderboard view
+    # Safely query without raising an exception if row 1 is absent
+    try:
+        state_res = supabase.from_("pong_night_state").select("is_active").eq("id", 1).maybe_single().execute()
+        active_pong_night = state_res.data.get("is_active", False) if state_res.data else False
+    except Exception:
+        active_pong_night = False
+
     leaderboard_res = supabase.from_("leaderboard").select("*").execute()
     leaderboard = leaderboard_res.data if leaderboard_res.data else []
 
-    # Fetch recent games with player usernames
     games_res = supabase.from_("games").select(
         "id, score1, score2, created_at, player1:player1_id(username), player2:player2_id(username), winner:winner_id(username)"
     ).order("created_at", desc=True).limit(6).execute()
-
     recent_games = games_res.data if games_res.data else []
 
-    return render_template("index.html", user=user, leaderboard=leaderboard, games=recent_games)
+    return render_template("index.html", user=user, leaderboard=leaderboard, games=recent_games, active_pong_night=active_pong_night)
 
 
 @app.route("/catalog")
@@ -115,62 +117,75 @@ def register():
 @app.route("/pong-night/setup", methods=["GET", "POST"])
 def pong_night_setup():
     user = get_current_user()
-    if not user:
-        return redirect(url_for("welcome"))
+    if not user: return redirect(url_for("welcome"))
 
     if request.method == "POST":
         selected_ids = request.form.getlist("players")
-
         if len(selected_ids) < 2:
             flash("You must select at least 2 players to start a Pong Night!", "warning")
             return redirect(url_for("pong_night_setup"))
 
-        # Fetch selected player details
         players_res = supabase.from_("profiles").select("id, username").in_("id", selected_ids).execute()
         players = players_res.data
-
-        # Mathematical trick: Shuffle players and have everyone play their neighbor
         random.shuffle(players)
         matches = []
         n = len(players)
 
         if n == 2:
-            # If only 2 players, they just play a best-of-two against each other
             matches.append({"p1": players[0], "p2": players[1]})
             matches.append({"p1": players[1], "p2": players[0]})
         else:
-            # Circle logic guarantees exactly 2 games per person
             for i in range(n):
-                matches.append({
-                    "p1": players[i],
-                    "p2": players[(i + 1) % n]
-                })
+                matches.append({"p1": players[i], "p2": players[(i + 1) % n]})
 
-        session["pong_night"] = matches
+        # NEW: Save matches to the global database instead of local session
+        supabase.from_("pong_night_state").update({
+            "is_active": True,
+            "queue": matches,
+            "completed": []
+        }).eq("id", 1).execute()
+
         return redirect(url_for("pong_night_active"))
 
     players_res = supabase.from_("profiles").select("*").execute()
     return render_template("pong_night_setup.html", user=user, players=players_res.data)
+
+
+@app.route("/pong-night/end")
+def pong_night_end():
+    user = get_current_user()
+    if not user: return redirect(url_for("welcome"))
+
+    # Wipe the global state cleanly
+    supabase.from_("pong_night_state").update({"is_active": False, "queue": [], "completed": []}).eq("id", 1).execute()
+    flash("Pong Night has been concluded!", "success")
+    return redirect(url_for("index"))
 @app.route("/pong-night/active")
 def pong_night_active():
     user = get_current_user()
-    if not user:
-        return redirect(url_for("welcome"))
+    if not user: return redirect(url_for("welcome"))
 
-    matches = session.get("pong_night", [])
-    return render_template("pong_night_active.html", user=user, matches=matches)
+    # NEW: Pull state from DB
+    state = supabase.from_("pong_night_state").select("*").eq("id", 1).single().execute().data
+    matches = state["queue"] if state else []
+    completed = state["completed"] if state else []
+
+    return render_template("pong_night_active.html", user=user, matches=matches, completed=completed)
+
+
 @app.route("/pong-night/play/<int:match_idx>")
 def pong_night_play(match_idx):
     user = get_current_user()
-    if not user:
-        return redirect(url_for("welcome"))
+    if not user: return redirect(url_for("welcome"))
 
-    matches = session.get("pong_night", [])
+    # NEW: Pull specific match from DB queue
+    state = supabase.from_("pong_night_state").select("queue").eq("id", 1).single().execute().data
+    matches = state["queue"] if state else []
+
     if match_idx < 0 or match_idx >= len(matches):
         return redirect(url_for("pong_night_active"))
 
-    match = matches[match_idx]
-    return render_template("pong_night_play.html", user=user, match=match, match_idx=match_idx)
+    return render_template("pong_night_play.html", user=user, match=matches[match_idx], match_idx=match_idx)
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -313,13 +328,24 @@ def game_submit():
     # NEW: If it was a Pong Night game, pop it from the session and pass a flag
     if pong_night_idx is not None:
         idx = int(pong_night_idx)
-        matches = session.get("pong_night", [])
-        if 0 <= idx < len(matches):
-            matches.pop(idx)
-            session["pong_night"] = matches
-        return redirect(url_for("game_result", game_id=new_game_id, from_pong_night="1"))
+        state = supabase.from_("pong_night_state").select("*").eq("id", 1).single().execute().data
+        queue = state["queue"]
+        completed = state["completed"]
 
-    return redirect(url_for("game_result", game_id=new_game_id))
+        if 0 <= idx < len(queue):
+            finished_match = queue.pop(idx)
+            finished_match["score1"] = score1
+            finished_match["score2"] = score2
+            finished_match["winner_id"] = winner_id
+            completed.append(finished_match)
+
+            # Update the global database
+            supabase.from_("pong_night_state").update({
+                "queue": queue,
+                "completed": completed
+            }).eq("id", 1).execute()
+
+        return redirect(url_for("game_result", game_id=new_game_id, from_pong_night="1"))
 
 @app.route("/tournaments", methods=["GET", "POST"])
 def tournaments():
