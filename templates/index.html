@@ -137,4 +137,23 @@
         });
     }
 </script>
+<!-- Tournament Generation Popup Modal -->
+{% if session.get('last_pool_play') %}
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+    <div class="bg-gray-800 p-8 rounded-2xl border-2 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.4)] max-w-lg w-full text-center">
+        <div class="text-6xl mb-4">🏆</div>
+        <h2 class="text-3xl font-extrabold text-white mb-2">Pong Night Complete!</h2>
+        <p class="text-gray-300 mb-8">Would you like to instantly generate a seeded tournament using tonight's stats?</p>
+
+        <div class="flex flex-col gap-3">
+            <a href="/tournament/setup" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-lg transition-colors shadow-lg">
+                Create Tournament
+            </a>
+            <a href="/dismiss-tournament-popup" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-3 rounded-xl transition-colors">
+                Skip for now
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

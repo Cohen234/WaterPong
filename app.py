@@ -4,6 +4,8 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 from datetime import datetime
 import random
+import functools
+import math
 load_dotenv()
 
 app = Flask(__name__)
@@ -38,6 +40,102 @@ def spectator():
     }
     flash("Entered as Spectator. You can view stats and log games for players!", "success")
     return redirect(url_for("index"))
+def generate_bracket_rounds(seeded_players):
+    """
+    Pairs #1 vs Last, #2 vs 2nd-to-last with power-of-2 standard single elimination.
+    If player count is not a power of 2 (e.g. 3, 5, 6), top seeds receive a BYE.
+    """
+    n = len(seeded_players)
+    if n < 2:
+        return []
+
+    # Next power of 2
+    bracket_size = 1 << (n - 1).bit_length()
+    byes = bracket_size - n
+
+    # Standard bracket seed pairing for round 1
+    # For size 4: (1,4), (2,3)
+    # For size 8: (1,8), (4,5), (2,7), (3,6)
+    def get_seed_order(size):
+        if size == 2:
+            return [1, 2]
+        prev = get_seed_order(size // 2)
+        res = []
+        for s in prev:
+            res.extend([s, size + 1 - s])
+        return res
+
+    seed_order = get_seed_order(bracket_size)
+    seed_map = {p["seed"]: p for p in seeded_players}
+
+    round_1_matches = []
+    match_id = 1
+
+    for i in range(0, len(seed_order), 2):
+        s1 = seed_order[i]
+        s2 = seed_order[i + 1]
+
+        p1 = seed_map.get(s1)
+        p2 = seed_map.get(s2)
+
+        match = {
+            "match_id": match_id,
+            "round": 1,
+            "p1": p1,
+            "p2": p2,
+            "winner_id": None,
+            "score1": None,
+            "score2": None,
+            "is_bye": False
+        }
+
+        # Auto-advance BYE if a player doesn't have an opponent
+        if p1 and not p2:
+            match["winner_id"] = p1["id"]
+            match["is_bye"] = True
+        elif p2 and not p1:
+            match["winner_id"] = p2["id"]
+            match["is_bye"] = True
+
+        round_1_matches.append(match)
+        match_id += 1
+
+    rounds = [round_1_matches]
+
+    # Generate placeholder matches for subsequent rounds
+    curr_matches = round_1_matches
+    round_num = 2
+    while len(curr_matches) > 1:
+        next_round_matches = []
+        for i in range(0, len(curr_matches), 2):
+            next_round_matches.append({
+                "match_id": match_id,
+                "round": round_num,
+                "p1": None,
+                "p2": None,
+                "winner_id": None,
+                "score1": None,
+                "score2": None,
+                "is_bye": False
+            })
+            match_id += 1
+        rounds.append(next_round_matches)
+        curr_matches = next_round_matches
+        round_num += 1
+
+    # Propagate any initial round 1 BYEs into round 2
+    for idx, r1_match in enumerate(rounds[0]):
+        if r1_match["is_bye"] and r1_match["winner_id"]:
+            next_m_idx = idx // 2
+            is_slot_p1 = (idx % 2 == 0)
+            winner = r1_match["p1"] if r1_match["p1"] and r1_match["p1"]["id"] == r1_match["winner_id"] else r1_match["p2"]
+            if len(rounds) > 1:
+                if is_slot_p1:
+                    rounds[1][next_m_idx]["p1"] = winner
+                else:
+                    rounds[1][next_m_idx]["p2"] = winner
+
+    return rounds
 @app.route("/")
 def index():
     user = get_current_user()
@@ -139,36 +237,52 @@ def pong_night_setup():
                 matches.append({"p1": players[i], "p2": players[(i + 1) % n]})
 
         # NEW: Save matches to the global database instead of local session
-        supabase.from_("pong_night_state").update({
+        supabase.from_("pong_night_state").upsert({
+            "id": 1,
             "is_active": True,
             "queue": matches,
             "completed": []
-        }).eq("id", 1).execute()
+        }).execute()
 
         return redirect(url_for("pong_night_active"))
 
     players_res = supabase.from_("profiles").select("*").execute()
     return render_template("pong_night_setup.html", user=user, players=players_res.data)
-
+@app.route("/dismiss-tournament-popup")
+def dismiss_tournament_popup():
+    session.pop("last_pool_play", None)
+    return redirect(url_for("index"))
 
 @app.route("/pong-night/end")
 def pong_night_end():
     user = get_current_user()
     if not user: return redirect(url_for("welcome"))
 
-    # Wipe the global state cleanly
+    # Grab the completed games before wiping the database
+    state = supabase.from_("pong_night_state").select("*").eq("id", 1).single().execute().data
+    completed_games = state.get("completed", [])
+
+    # Temporarily store the games in the session to trigger the popup on the dashboard
+    if completed_games:
+        session["last_pool_play"] = completed_games
+
+    # Wipe the global state
     supabase.from_("pong_night_state").update({"is_active": False, "queue": [], "completed": []}).eq("id", 1).execute()
     flash("Pong Night has been concluded!", "success")
     return redirect(url_for("index"))
+
+
 @app.route("/pong-night/active")
 def pong_night_active():
     user = get_current_user()
-    if not user: return redirect(url_for("welcome"))
+    if not user:
+        return redirect(url_for("welcome"))
 
-    # NEW: Pull state from DB
-    state = supabase.from_("pong_night_state").select("*").eq("id", 1).single().execute().data
-    matches = state["queue"] if state else []
-    completed = state["completed"] if state else []
+    state_res = supabase.from_("pong_night_state").select("*").eq("id", 1).maybe_single().execute()
+    state = state_res.data if state_res else None
+
+    matches = state["queue"] if state and state.get("queue") else []
+    completed = state["completed"] if state and state.get("completed") else []
 
     return render_template("pong_night_active.html", user=user, matches=matches, completed=completed)
 
@@ -176,11 +290,12 @@ def pong_night_active():
 @app.route("/pong-night/play/<int:match_idx>")
 def pong_night_play(match_idx):
     user = get_current_user()
-    if not user: return redirect(url_for("welcome"))
+    if not user:
+        return redirect(url_for("welcome"))
 
-    # NEW: Pull specific match from DB queue
-    state = supabase.from_("pong_night_state").select("queue").eq("id", 1).single().execute().data
-    matches = state["queue"] if state else []
+    state_res = supabase.from_("pong_night_state").select("queue").eq("id", 1).maybe_single().execute()
+    state = state_res.data if state_res else None
+    matches = state["queue"] if state and state.get("queue") else []
 
     if match_idx < 0 or match_idx >= len(matches):
         return redirect(url_for("pong_night_active"))
@@ -260,7 +375,8 @@ def game_active(p1_id, p2_id):
 @app.route("/game/result/<int:game_id>")
 def game_result(game_id):
     user = get_current_user()
-    if not user: return redirect(url_for("login"))
+    if not user:
+        return redirect(url_for("login"))
 
     game = supabase.from_("games").select("*").eq("id", game_id).single().execute().data
     winner_id = game["winner_id"]
@@ -273,30 +389,36 @@ def game_result(game_id):
     w_old_elo = old_elos.get(winner_id, w_stats["elo"] - 15)
     l_old_elo = old_elos.get(loser_id, l_stats["elo"] + 15)
 
-    # NEW: Check the URL for the pong night flag
     from_pong_night = request.args.get("from_pong_night")
+    from_tournament_id = request.args.get("from_tournament_id")
 
     return render_template("game_result.html",
                            w_stats=w_stats, l_stats=l_stats,
                            w_old=w_old_elo, l_old=l_old_elo,
-                           from_pong_night=from_pong_night)
+                           from_pong_night=from_pong_night,
+                           from_tournament_id=from_tournament_id)
 
 @app.route("/game/submit", methods=["POST"])
 def game_submit():
     user = get_current_user()
-    if not user: return redirect(url_for("login"))
+    if not user:
+        return redirect(url_for("login"))
 
     p1_id = request.form.get("p1_id")
     p2_id = request.form.get("p2_id")
     winner_id = request.form.get("winner_id")
     cups_won_by = int(request.form.get("cups_won_by", 0))
-    pong_night_idx = request.form.get("pong_night_idx") # NEW: Check if from Pong Night
+
+    pong_night_idx = request.form.get("pong_night_idx")
+    tournament_id = request.form.get("tournament_id")
+    round_idx = request.form.get("round_idx")
+    match_idx = request.form.get("match_idx")
 
     if not winner_id:
         flash("You must select a winner!", "danger")
-        return redirect(url_for("game_active", p1_id=p1_id, p2_id=p2_id))
+        return redirect(url_for("index"))
 
-    # Calculate Elo (Keep your existing Elo logic here...)
+    # Pull decayed rating for calculation
     p1_data = supabase.from_("leaderboard").select("elo").eq("user_id", p1_id).single().execute().data
     p2_data = supabase.from_("leaderboard").select("elo").eq("user_id", p2_id).single().execute().data
     r1, r2 = p1_data["elo"], p2_data["elo"]
@@ -312,25 +434,65 @@ def game_submit():
     score1 = 10 if winner_id == p1_id else max(0, 10 - cups_won_by)
     score2 = 10 if winner_id == p2_id else max(0, 10 - cups_won_by)
 
+    # 1. Log game attached to tournament_id if present
     game_data = {
-        "player1_id": p1_id, "player2_id": p2_id,
-        "score1": score1, "score2": score2,
-        "winner_id": winner_id, "tournament_id": None
+        "player1_id": p1_id,
+        "player2_id": p2_id,
+        "score1": score1,
+        "score2": score2,
+        "winner_id": winner_id,
+        "tournament_id": int(tournament_id) if tournament_id else None
     }
     res = supabase.from_("games").insert(game_data).execute()
     new_game_id = res.data[0]["id"]
 
+    # 2. Update player ratings
     supabase.from_("profiles").update({"elo": new_r1}).eq("id", p1_id).execute()
     supabase.from_("profiles").update({"elo": new_r2}).eq("id", p2_id).execute()
-
     session["old_elos"] = {p1_id: r1, p2_id: r2}
 
-    # NEW: If it was a Pong Night game, pop it from the session and pass a flag
+    # 3. Bracket Progression Handling
+    if tournament_id and round_idx is not None and match_idx is not None:
+        t_id = int(tournament_id)
+        r_i = int(round_idx)
+        m_i = int(match_idx)
+
+        t_res = supabase.from_("tournaments").select("bracket").eq("id", t_id).single().execute()
+        bracket = t_res.data["bracket"]
+
+        match = bracket[r_i][m_i]
+        match["winner_id"] = winner_id
+        match["score1"] = score1
+        match["score2"] = score2
+
+        winner_obj = match["p1"] if match["p1"]["id"] == winner_id else match["p2"]
+
+        # Advance to the next round if not the finals
+        if r_i + 1 < len(bracket):
+            next_m_idx = m_i // 2
+            is_slot_p1 = (m_i % 2 == 0)
+            if is_slot_p1:
+                bracket[r_i + 1][next_m_idx]["p1"] = winner_obj
+            else:
+                bracket[r_i + 1][next_m_idx]["p2"] = winner_obj
+
+            supabase.from_("tournaments").update({"bracket": bracket}).eq("id", t_id).execute()
+        else:
+            # Tournament Final Match Complete: Declare Champion
+            supabase.from_("tournaments").update({
+                "bracket": bracket,
+                "winner_id": winner_id,
+                "status": "COMPLETED"
+            }).eq("id", t_id).execute()
+
+        return redirect(url_for("game_result", game_id=new_game_id, from_tournament_id=t_id))
+
+    # Pong Night queue progression
     if pong_night_idx is not None:
         idx = int(pong_night_idx)
         state = supabase.from_("pong_night_state").select("*").eq("id", 1).single().execute().data
-        queue = state["queue"]
-        completed = state["completed"]
+        queue = state.get("queue", [])
+        completed = state.get("completed", [])
 
         if 0 <= idx < len(queue):
             finished_match = queue.pop(idx)
@@ -339,7 +501,6 @@ def game_submit():
             finished_match["winner_id"] = winner_id
             completed.append(finished_match)
 
-            # Update the global database
             supabase.from_("pong_night_state").update({
                 "queue": queue,
                 "completed": completed
@@ -347,28 +508,156 @@ def game_submit():
 
         return redirect(url_for("game_result", game_id=new_game_id, from_pong_night="1"))
 
-@app.route("/tournaments", methods=["GET", "POST"])
+    return redirect(url_for("game_result", game_id=new_game_id))
+
+@app.route("/tournaments", methods=["GET"])
 def tournaments():
     user = get_current_user()
-
-    if request.method == "POST":
-        if not user:
-            return redirect(url_for("login"))
-
-        t_name = request.form.get("name")
-        if t_name:
-            supabase.from_("tournaments").insert({"name": t_name}).execute()
-            flash("Tournament created!", "success")
-            return redirect(url_for("tournaments"))
+    if not user:
+        return redirect(url_for("login"))
 
     # Fetch tournaments & games attached to them
     tournaments_res = supabase.from_("tournaments").select(
-        "*, games(*, player1:player1_id(username), player2:player2_id(username))").order("created_at",
-                                                                                         desc=True).execute()
+        "*, games(*, player1:player1_id(username), player2:player2_id(username))").order("created_at", desc=True).execute()
     all_tournaments = tournaments_res.data or []
 
     return render_template("tournaments.html", user=user, tournaments=all_tournaments)
+@app.route("/tournament/<int:tournament_id>/bracket")
+def tournament_bracket(tournament_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
 
+    t_res = supabase.from_("tournaments").select("*, winner:winner_id(username)").eq("id", tournament_id).single().execute()
+    tournament = t_res.data
+
+    return render_template("tournament_bracket.html", user=user, tournament=tournament)
+@app.route("/tournament/setup", methods=["GET", "POST"])
+def tournament_setup():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    all_players = supabase.from_("profiles").select("*").execute().data
+
+    if request.method == "POST":
+        t_name = request.form.get("name")
+        mode = request.form.get("tourney_mode")
+        pool_games = session.get("last_pool_play", [])
+
+        pool_player_ids = set()
+        for g in pool_games:
+            pool_player_ids.add(g["p1"]["id"])
+            pool_player_ids.add(g["p2"]["id"])
+        pool_player_ids = list(pool_player_ids)
+
+        selected_ids = []
+        use_pool_stats = False
+
+        if mode in ["all_pool", "custom_size"]:
+            selected_ids = pool_player_ids
+            use_pool_stats = True
+        elif mode == "custom_players":
+            selected_ids = request.form.getlist("selected_players")
+            use_pool_stats = False
+
+        if not selected_ids:
+            flash("No players selected for the tournament!", "danger")
+            return redirect(url_for("tournament_setup"))
+
+        stats_res = supabase.from_("leaderboard").select("*").in_("user_id", selected_ids).execute()
+        stats = {row["user_id"]: row for row in stats_res.data}
+
+        pool_stats = {uid: {"wins": 0, "games": 0, "h2h": {}} for uid in selected_ids}
+        if use_pool_stats and pool_games:
+            for g in pool_games:
+                p1, p2, w = g["p1"]["id"], g["p2"]["id"], g["winner_id"]
+                if p1 in pool_stats: pool_stats[p1]["games"] += 1
+                if p2 in pool_stats: pool_stats[p2]["games"] += 1
+                if w in pool_stats:
+                    pool_stats[w]["wins"] += 1
+                    loser = p2 if w == p1 else p1
+                    pool_stats[w]["h2h"][loser] = pool_stats[w]["h2h"].get(loser, 0) + 1
+
+        players = []
+        for uid in selected_ids:
+            p_stat = stats.get(uid, {})
+            players.append({
+                "id": uid,
+                "username": p_stat.get("username", "Unknown"),
+                "elo": p_stat.get("elo", 1200),
+                "pool_win_pct": (pool_stats[uid]["wins"] / max(1, pool_stats[uid]["games"])) if use_pool_stats else 0,
+                "overall_wl": p_stat.get("win_rate", 0),
+                "h2h": pool_stats[uid]["h2h"] if use_pool_stats else {}
+            })
+
+        players.sort(key=lambda x: x["elo"], reverse=True)
+        for i, p in enumerate(players):
+            p["elo_rank"] = i + 1
+
+        if use_pool_stats:
+            players.sort(key=lambda x: x["pool_win_pct"], reverse=True)
+            for i, p in enumerate(players):
+                p["pool_rank"] = i + 1
+            for p in players:
+                p["score"] = (p["elo_rank"] + p["pool_rank"]) / 2.0
+        else:
+            for p in players:
+                p["score"] = p["elo_rank"]
+
+        def compare(a, b):
+            if a["score"] != b["score"]:
+                return -1 if a["score"] < b["score"] else 1
+            if use_pool_stats:
+                a_beat_b = a["h2h"].get(b["id"], 0)
+                b_beat_a = b["h2h"].get(a["id"], 0)
+                if a_beat_b != b_beat_a:
+                    return -1 if a_beat_b > b_beat_a else 1
+            if a["overall_wl"] != b["overall_wl"]:
+                return -1 if a["overall_wl"] > b["overall_wl"] else 1
+            return -1 if a["id"] < b["id"] else 1
+
+        players.sort(key=functools.cmp_to_key(compare))
+
+        if mode == "custom_size":
+            target_size = int(request.form.get("target_size", len(players)))
+            players = players[:target_size]
+
+        for i, p in enumerate(players):
+            p["seed"] = i + 1
+
+        # Generate the interactive single-elimination bracket
+        bracket = generate_bracket_rounds(players)
+
+        insert_res = supabase.from_("tournaments").insert({
+            "name": t_name,
+            "seeds": players,
+            "bracket": bracket,
+            "status": "ACTIVE"
+        }).execute()
+
+        new_t_id = insert_res.data[0]["id"]
+        session.pop("last_pool_play", None)
+        flash(f"Tournament Generated with {len(players)} seeds!", "success")
+        return redirect(url_for("tournament_bracket", tournament_id=new_t_id))
+
+    return render_template("tournament_setup.html", user=user, all_players=all_players, has_pool=bool(session.get("last_pool_play")))
+@app.route("/tournament/<int:tournament_id>/play/<int:round_idx>/<int:match_idx>")
+def tournament_play(tournament_id, round_idx, match_idx):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    t_res = supabase.from_("tournaments").select("*").eq("id", tournament_id).single().execute()
+    tournament = t_res.data
+    bracket = tournament.get("bracket", [])
+
+    match = bracket[round_idx][match_idx]
+    if not match["p1"] or not match["p2"] or match["winner_id"]:
+        flash("This match cannot be played currently.", "warning")
+        return redirect(url_for("tournament_bracket", tournament_id=tournament_id))
+
+    return render_template("tournament_play.html", user=user, tournament=tournament, match=match, round_idx=round_idx, match_idx=match_idx)
 
 @app.route("/profile/<user_id>")
 def profile(user_id):

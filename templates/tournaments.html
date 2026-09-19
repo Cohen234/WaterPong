@@ -1,41 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="space-y-8">
-    <!-- Create Tournament Card -->
-    {% if user %}
-    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700">
-        <h2 class="text-xl font-bold mb-4 text-indigo-400">Create New Tournament</h2>
-        <form method="POST" class="flex gap-4">
-            <input type="text" name="name" placeholder="e.g., Summer Pong Championship 2026" required class="flex-grow bg-gray-900 border border-gray-700 rounded px-4 py-2 text-white">
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 font-bold px-6 py-2 rounded-lg">Create</button>
-        </form>
+    <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+        <h2 class="text-3xl font-extrabold text-white">Tournaments</h2>
+        {% if user %}
+        <a href="/tournament/setup" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2 rounded-lg shadow-lg">
+            + New Tournament
+        </a>
+        {% endif %}
     </div>
-    {% endif %}
 
-    <!-- Tournaments List -->
-    <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-gray-200">Active & Past Tournaments</h2>
+    <div class="space-y-8">
         {% for t in tournaments %}
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-md">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-white">{{ t.name }}</h3>
-                <span class="text-xs uppercase bg-indigo-900 text-indigo-300 px-2.5 py-1 rounded-full font-semibold">{{ t.status }}</span>
-            </div>
-            
-            <h4 class="text-sm font-semibold text-gray-400 mb-2">Tournament Matches:</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {% for g in t.games %}
-                <div class="bg-gray-900 p-3 rounded border border-gray-700 text-sm flex justify-between">
-                    <span>{{ g.player1.username }} vs {{ g.player2.username }}</span>
-                    <span class="font-mono font-bold">{{ g.score1 }} - {{ g.score2 }}</span>
+        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-2xl font-bold text-white">{{ t.name }}</h3>
+                    {% if t.winner %}
+                        <p class="text-yellow-400 font-bold text-sm mt-1">👑 Champion: {{ t.winner.username }}</p>
+                    {% endif %}
                 </div>
-                {% else %}
-                <p class="text-gray-500 text-sm italic">No matches played in this tournament yet.</p>
-                {% endfor %}
+                <div class="flex items-center gap-4">
+                    <span class="text-xs uppercase bg-indigo-900 text-indigo-300 px-3 py-1.5 rounded-full font-bold tracking-wider">{{ t.status }}</span>
+                    <a href="/tournament/{{ t.id }}/bracket" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
+                        View Bracket →
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">Official Seeds</h4>
+                    <div class="bg-gray-900 rounded-lg border border-gray-700 p-4 max-h-56 overflow-y-auto space-y-2">
+                        {% if t.seeds %}
+                            {% for p in t.seeds %}
+                            <div class="flex justify-between items-center border-b border-gray-800 pb-2 last:border-0 last:pb-0">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-gray-500 font-mono font-bold w-6 text-right">#{{ p.seed }}</span>
+                                    <span class="font-bold text-gray-200">{{ p.username }}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">Elo: {{ p.elo }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-gray-500 text-sm italic">No seeding data available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Matches Played</h4>
+                    <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
+                        {% for g in t.games %}
+                        <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-sm flex justify-between items-center">
+                            <span class="text-gray-300">{{ g.player1.username }} vs {{ g.player2.username }}</span>
+                            <span class="font-mono font-bold bg-gray-800 px-2 py-1 rounded text-white">{{ g.score1 }} - {{ g.score2 }}</span>
+                        </div>
+                        {% else %}
+                        <p class="text-gray-500 text-sm italic">No matches logged yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
         {% else %}
-        <p class="text-gray-500">No tournaments created yet.</p>
+        <div class="text-center py-12 bg-gray-800 rounded-xl border border-gray-700">
+            <p class="text-gray-400 text-lg">No tournaments have been generated yet.</p>
+        </div>
         {% endfor %}
     </div>
 </div>

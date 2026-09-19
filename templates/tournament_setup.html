@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-gray-800 p-8 rounded-xl border border-indigo-500/50 shadow-xl">
+    <h2 class="text-3xl font-extrabold text-white mb-6">Setup <span class="text-indigo-400">Tournament</span></h2>
+
+    <form method="POST" class="space-y-8">
+        
+        <!-- Tournament Name -->
+        <div>
+            <label class="block text-sm font-medium mb-2 text-gray-300">Tournament Name</label>
+            <input type="text" name="name" required placeholder="e.g., Friday Night Championship" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:border-indigo-500 focus:outline-none">
+        </div>
+
+        <!-- Mode Selection -->
+        <div>
+            <label class="block text-sm font-medium mb-3 text-gray-300">Participant Mode</label>
+            <div class="space-y-3">
+                {% if has_pool %}
+                <label class="flex items-center gap-3 p-4 border border-gray-700 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors">
+                    <input type="radio" name="tourney_mode" value="all_pool" checked onclick="toggleOptions()" class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <p class="font-bold text-white">All Pool Players</p>
+                        <p class="text-sm text-gray-400">Uses 50/50 formula (Elo + Tonight's Games) to seed everyone who just played.</p>
+                    </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-4 border border-gray-700 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors">
+                    <input type="radio" name="tourney_mode" value="custom_size" onclick="toggleOptions()" class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <p class="font-bold text-white">Custom Size Cutoff</p>
+                        <p class="text-sm text-gray-400">Uses 50/50 formula, but eliminates the lowest seeds to fit a specific bracket size.</p>
+                    </div>
+                </label>
+                {% endif %}
+
+                <label class="flex items-center gap-3 p-4 border border-gray-700 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors">
+                    <input type="radio" name="tourney_mode" value="custom_players" {% if not has_pool %}checked{% endif %} onclick="toggleOptions()" class="w-5 h-5 text-indigo-600">
+                    <div>
+                        <p class="font-bold text-white">Custom Players</p>
+                        <p class="text-sm text-gray-400">Hand-pick anyone from the app. Seeds generated via straight Elo.</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Hidden Input: Target Size -->
+        <div id="size_input" class="hidden bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <label class="block text-sm font-medium mb-2 text-indigo-300">How many players make the cut?</label>
+            <input type="number" name="target_size" min="2" class="w-full bg-gray-800 border border-gray-600 rounded p-2 text-white">
+        </div>
+
+        <!-- Hidden Input: Custom Checkboxes -->
+        <div id="custom_input" class="{% if has_pool %}hidden{% endif %} bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <label class="block text-sm font-medium mb-4 text-indigo-300">Select Participants:</label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {% for p in all_players %}
+                <label class="flex items-center gap-2 cursor-pointer text-gray-300 hover:text-white">
+                    <input type="checkbox" name="selected_players" value="{{ p.id }}" class="rounded text-indigo-600 focus:ring-indigo-500">
+                    {{ p.username }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-xl transition-colors shadow-lg">
+            Generate Bracket Seeds
+        </button>
+    </form>
+</div>
+
+<script>
+    function toggleOptions() {
+        const mode = document.querySelector('input[name="tourney_mode"]:checked').value;
+        document.getElementById('size_input').classList.toggle('hidden', mode !== 'custom_size');
+        document.getElementById('custom_input').classList.toggle('hidden', mode !== 'custom_players');
+    }
+</script>
+{% endblock %}
