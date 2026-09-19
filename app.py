@@ -510,15 +510,18 @@ def game_submit():
 
     return redirect(url_for("game_result", game_id=new_game_id))
 
+
 @app.route("/tournaments", methods=["GET"])
 def tournaments():
     user = get_current_user()
     if not user:
         return redirect(url_for("login"))
 
-    # Fetch tournaments & games attached to them
+    # Notice winner:winner_id(username) added here
     tournaments_res = supabase.from_("tournaments").select(
-        "*, games(*, player1:player1_id(username), player2:player2_id(username))").order("created_at", desc=True).execute()
+        "*, winner:winner_id(username), games(*, player1:player1_id(username), player2:player2_id(username))"
+    ).order("created_at", desc=True).execute()
+
     all_tournaments = tournaments_res.data or []
 
     return render_template("tournaments.html", user=user, tournaments=all_tournaments)

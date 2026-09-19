@@ -1,71 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="space-y-8">
-    <div class="flex justify-between items-center border-b border-gray-700 pb-4">
-        <h2 class="text-3xl font-extrabold text-white">Tournaments</h2>
+<div class="space-y-6 md:space-y-8">
+    <!-- Top Header: Scaled and compact on mobile -->
+    <div class="flex justify-between items-center border-b border-gray-700 pb-3 md:pb-4 gap-2">
+        <h2 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white">Tournaments</h2>
         {% if user %}
-        <a href="/tournament/setup" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2 rounded-lg shadow-lg">
-            + New Tournament
+        <a href="/tournament/setup" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 sm:px-4 sm:py-2 md:px-6 md:py-2 rounded-lg text-xs sm:text-sm md:text-base transition-colors shadow-md whitespace-nowrap">
+            + New Tourney
         </a>
         {% endif %}
     </div>
 
-    <div class="space-y-8">
+    <!-- Tournaments List -->
+    <div class="space-y-6 md:space-y-8">
         {% for t in tournaments %}
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-2xl font-bold text-white">{{ t.name }}</h3>
+        <div class="bg-gray-800 p-4 sm:p-5 md:p-6 rounded-xl border border-gray-700 shadow-xl">
+
+            <!-- Tournament Card Header: Mobile-friendly row/stack layout -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-gray-700/60 pb-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">{{ t.name }}</h3>
+
+                    <!-- Compact Completed / Active badge -->
+                    <span class="text-[10px] md:text-xs uppercase bg-indigo-950 text-indigo-300 border border-indigo-700/50 px-2 py-0.5 rounded-full font-bold tracking-wider">
+                        {{ t.status }}
+                    </span>
+
                     {% if t.winner %}
-                        <p class="text-yellow-400 font-bold text-sm mt-1">👑 Champion: {{ t.winner.username }}</p>
+                        <span class="inline-flex items-center gap-1 bg-yellow-950/60 border border-yellow-500/40 text-yellow-300 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold tracking-wide">
+                            👑 Winner: {{ t.winner.username }}
+                        </span>
                     {% endif %}
                 </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-xs uppercase bg-indigo-900 text-indigo-300 px-3 py-1.5 rounded-full font-bold tracking-wider">{{ t.status }}</span>
-                    <a href="/tournament/{{ t.id }}/bracket" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
-                        View Bracket →
-                    </a>
-                </div>
+
+                <!-- Slim "View Bracket" button -->
+                <a href="/tournament/{{ t.id }}/bracket" class="self-start sm:self-auto inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs sm:text-sm transition-colors shadow-sm whitespace-nowrap">
+                    <span>View Bracket</span>
+                    <span>→</span>
+                </a>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                <!-- Seeding Chart -->
                 <div>
-                    <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">Official Seeds</h4>
-                    <div class="bg-gray-900 rounded-lg border border-gray-700 p-4 max-h-56 overflow-y-auto space-y-2">
+                    <h4 class="text-xs md:text-sm font-bold text-indigo-400 uppercase tracking-wider mb-2.5">Official Seeds</h4>
+                    <div class="bg-gray-900 rounded-lg border border-gray-700 p-3 max-h-48 md:max-h-56 overflow-y-auto space-y-1.5">
                         {% if t.seeds %}
                             {% for p in t.seeds %}
-                            <div class="flex justify-between items-center border-b border-gray-800 pb-2 last:border-0 last:pb-0">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-gray-500 font-mono font-bold w-6 text-right">#{{ p.seed }}</span>
+                            <div class="flex justify-between items-center border-b border-gray-800 pb-1.5 last:border-0 last:pb-0 text-xs md:text-sm">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-gray-500 font-mono font-bold w-5 text-right">#{{ p.seed }}</span>
                                     <span class="font-bold text-gray-200">{{ p.username }}</span>
                                 </div>
-                                <span class="text-xs text-gray-500">Elo: {{ p.elo }}</span>
+                                <span class="text-[11px] md:text-xs text-gray-500">Elo: {{ p.elo }}</span>
                             </div>
                             {% endfor %}
                         {% else %}
-                            <p class="text-gray-500 text-sm italic">No seeding data available.</p>
+                            <p class="text-gray-500 text-xs italic">No seeding data available.</p>
                         {% endif %}
                     </div>
                 </div>
 
+                <!-- Matches List -->
                 <div>
-                    <h4 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Matches Played</h4>
-                    <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
+                    <h4 class="text-xs md:text-sm font-bold text-gray-400 uppercase tracking-wider mb-2.5">Matches Played</h4>
+                    <div class="space-y-2 max-h-48 md:max-h-56 overflow-y-auto pr-1">
                         {% for g in t.games %}
-                        <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-sm flex justify-between items-center">
-                            <span class="text-gray-300">{{ g.player1.username }} vs {{ g.player2.username }}</span>
-                            <span class="font-mono font-bold bg-gray-800 px-2 py-1 rounded text-white">{{ g.score1 }} - {{ g.score2 }}</span>
+                        <div class="bg-gray-900 p-2.5 rounded-lg border border-gray-700 text-xs md:text-sm flex justify-between items-center">
+                            <span class="text-gray-300 truncate pr-2">{{ g.player1.username }} vs {{ g.player2.username }}</span>
+                            <span class="font-mono font-bold bg-gray-800 px-2 py-0.5 rounded text-white whitespace-nowrap">{{ g.score1 }} - {{ g.score2 }}</span>
                         </div>
                         {% else %}
-                        <p class="text-gray-500 text-sm italic">No matches logged yet.</p>
+                        <p class="text-gray-500 text-xs italic">No matches logged yet.</p>
                         {% endfor %}
                     </div>
                 </div>
             </div>
+
         </div>
         {% else %}
-        <div class="text-center py-12 bg-gray-800 rounded-xl border border-gray-700">
-            <p class="text-gray-400 text-lg">No tournaments have been generated yet.</p>
+        <div class="text-center py-10 bg-gray-800 rounded-xl border border-gray-700">
+            <p class="text-gray-400 text-sm md:text-base">No tournaments have been generated yet.</p>
         </div>
         {% endfor %}
     </div>
