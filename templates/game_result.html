@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-    /* CSS Fire Animation */
     .fire-text {
         color: #ff9900;
         text-shadow: 0 -2px 4px #fff, 0 -6px 10px #ff3300, 0 -10px 20px #ff0000, 0 -18px 40px #cc0000;
@@ -12,10 +11,9 @@
         100% { text-shadow: 0 -2px 4px #fff, 0 -4px 8px #ff3300, 0 -8px 15px #ff0000, 0 -14px 30px #cc0000; transform: scale(1.02); color: #ffcc00; }
     }
 
-    /* Pop-in animation for the Elo differentials */
     .fade-in-delay {
         opacity: 0;
-        animation: popIn 0.4s ease-out 1.5s forwards; /* 1.5s delay matches the ticker duration */
+        animation: popIn 0.4s ease-out 1.5s forwards;
     }
     @keyframes popIn {
         from { opacity: 0; transform: translateY(10px) scale(0.9); }
@@ -23,60 +21,54 @@
     }
 </style>
 
-<div class="relative w-full h-[70vh] flex items-center justify-center overflow-hidden bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl">
+<div class="relative w-full min-h-[60vh] md:h-[70vh] flex items-center justify-center overflow-hidden bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-6">
 
     <!-- Big Winner Section (Centered) -->
     <div class="text-center z-10 flex flex-col items-center">
-        <h2 class="text-3xl font-bold text-gray-400 mb-2 uppercase tracking-widest">Victory</h2>
-        <h1 class="text-7xl font-extrabold fire-text mb-6">{{ w_stats.username }}</h1>
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-400 mb-2 uppercase tracking-widest">Victory</h2>
+        <h1 class="text-5xl md:text-7xl font-extrabold fire-text mb-6">{{ w_stats.username }}</h1>
 
-        <div class="bg-gray-800/80 backdrop-blur-sm px-8 py-4 rounded-xl border border-gray-700 shadow-xl">
-            <p class="text-gray-400 text-sm uppercase mb-1">New Elo Rating</p>
-            <p class="text-5xl font-mono font-bold text-green-400 flex items-center justify-center gap-2">
+        <div class="bg-gray-800/80 backdrop-blur-sm px-6 md:px-8 py-4 rounded-xl border border-gray-700 shadow-xl">
+            <p class="text-gray-400 text-xs md:text-sm uppercase mb-1">New Elo Rating</p>
+            <p class="text-4xl md:text-5xl font-mono font-bold text-green-400 flex items-center justify-center gap-2">
                 <span id="winner-elo">{{ w_old }}</span>
-                <span class="text-xl text-green-500 flex items-center">
-                    ↑ <span class="text-lg ml-1 fade-in-delay">(+{{ w_stats.elo - w_old }})</span>
+                <span class="text-lg md:text-xl text-green-500 flex items-center">
+                    ↑ <span class="text-base md:text-lg ml-1 fade-in-delay">(+{{ w_stats.elo - w_old }})</span>
                 </span>
             </p>
-            <p class="text-gray-400 mt-3 font-semibold text-sm">Overall Record: {{ w_stats.wins }}W - {{ w_stats.losses }}L</p>
+            <p class="text-gray-400 mt-3 font-semibold text-xs md:text-sm">Overall Record: {{ w_stats.wins }}W - {{ w_stats.losses }}L</p>
         </div>
 
-        {% if from_pong_night %}
-            <a href="/pong-night/active" class="mt-8 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full transition shadow-lg">
-                Next Pool Match →
-            </a>
-        {% else %}
-            <a href="/" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg">
-                Return to Dashboard
-            </a>
-        {% endif %}
-        {% if from_tournament_id %}
-            <a href="/tournament/{{ from_tournament_id }}/bracket" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg">
-                Back to Bracket →
-            </a>
-        {% elif from_pong_night %}
-            <a href="/pong-night/active" class="mt-8 px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full transition shadow-lg">
-                Next Pool Match →
-            </a>
-        {% else %}
-            <a href="/" class="mt-8 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg">
-                Return to Dashboard
-            </a>
-        {% endif %}
+        <!-- Single Destination Action Button -->
+        <div class="mt-8">
+            {% if from_tournament_id %}
+                <a href="/tournament/{{ from_tournament_id }}/bracket" class="px-6 md:px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg text-sm md:text-base">
+                    Back to Bracket →
+                </a>
+            {% elif from_pong_night %}
+                <a href="/pong-night/active" class="px-6 md:px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-full transition shadow-lg text-sm md:text-base">
+                    Next Pool Match →
+                </a>
+            {% else %}
+                <a href="/" class="px-6 md:px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-full transition shadow-lg text-sm md:text-base">
+                    Return to Dashboard
+                </a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Small Loser Section (Bottom Right Corner) -->
-    <div class="absolute bottom-6 right-6 bg-gray-800/50 border border-gray-700/50 p-4 rounded-xl text-right opacity-70 grayscale transition hover:grayscale-0 hover:opacity-100">
-        <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Defeated</p>
-        <p class="text-xl font-bold text-gray-300">{{ l_stats.username }}</p>
-        <div class="mt-2">
-            <p class="text-2xl font-mono font-bold text-red-400 flex items-center justify-end gap-1">
-                <span class="text-sm text-red-500 flex items-center">
-                    <span class="text-xs mr-1 fade-in-delay">(-{{ l_old - l_stats.elo }})</span> ↓
+    <div class="absolute bottom-4 right-4 md:bottom-6 md:right-6 bg-gray-800/60 border border-gray-700/50 p-3 md:p-4 rounded-xl text-right opacity-80 grayscale transition hover:grayscale-0 hover:opacity-100">
+        <p class="text-[10px] md:text-xs text-gray-500 uppercase tracking-widest mb-1">Defeated</p>
+        <p class="text-base md:text-xl font-bold text-gray-300">{{ l_stats.username }}</p>
+        <div class="mt-1 md:mt-2">
+            <p class="text-lg md:text-2xl font-mono font-bold text-red-400 flex items-center justify-end gap-1">
+                <span class="text-xs md:text-sm text-red-500 flex items-center">
+                    <span class="text-[10px] md:text-xs mr-1 fade-in-delay">(-{{ l_old - l_stats.elo }})</span> ↓
                 </span>
                 <span id="loser-elo">{{ l_old }}</span>
             </p>
-            <p class="text-xs text-gray-500 mt-1">{{ l_stats.wins }}W - {{ l_stats.losses }}L</p>
+            <p class="text-[10px] md:text-xs text-gray-500 mt-1">{{ l_stats.wins }}W - {{ l_stats.losses }}L</p>
         </div>
     </div>
 </div>

@@ -1,45 +1,42 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-xl border border-gray-700 shadow-xl text-center">
-    <h2 class="text-2xl font-bold mb-2 text-white">Game in Progress 🔴</h2>
-    <p class="text-gray-400 mb-8">When the game finishes, click the winner.</p>
-    
+<div class="max-w-2xl mx-auto bg-gray-800 p-6 md:p-8 rounded-xl border border-gray-700 shadow-xl text-center">
+    <h2 class="text-xl md:text-2xl font-bold mb-2 text-white">Game in Progress 🔴</h2>
+    <p class="text-sm md:text-base text-gray-400 mb-6 md:mb-8">When the game finishes, click the winner.</p>
+
     <form action="/game/submit" method="POST" id="gameForm">
         <!-- Hidden Inputs for Backend -->
         <input type="hidden" name="p1_id" value="{{ p1.id }}">
         <input type="hidden" name="p2_id" value="{{ p2.id }}">
         <input type="hidden" name="winner_id" id="winnerInput" value="">
 
-        <!-- Clickable Player Icons -->
-        <!-- Shrunk the gap and card padding for mobile -->
+        <!-- Clickable Player Cards -->
         <div class="flex flex-col md:flex-row gap-4 md:gap-6 justify-center mb-6 md:mb-8">
-            <div id="card-{{ match.p1.id }}" onclick="selectWinner('{{ match.p1.id }}')"
+            <!-- Player 1 Card -->
+            <div id="card-{{ p1.id }}" onclick="selectWinner('{{ p1.id }}')"
                  class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all hover:border-indigo-400">
-                <!-- If this is Tournament play, keep the seed text. If Pong Night, just delete this span line -->
-                <span class="text-[10px] md:text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1 md:mb-2">Seed #{{ match.p1.seed }}</span>
                 <div class="text-3xl md:text-4xl mb-2 md:mb-3">🍺</div>
-                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ match.p1.username }}</h3>
+                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ p1.username }}</h3>
             </div>
 
             <div class="flex items-center justify-center font-bold text-gray-500 text-lg md:text-xl py-2 md:py-0">VS</div>
 
-            <div id="card-{{ match.p2.id }}" onclick="selectWinner('{{ match.p2.id }}')"
+            <!-- Player 2 Card -->
+            <div id="card-{{ p2.id }}" onclick="selectWinner('{{ p2.id }}')"
                  class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all hover:border-indigo-400">
-                <!-- If this is Tournament play, keep the seed text. If Pong Night, just delete this span line -->
-                <span class="text-[10px] md:text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1 md:mb-2">Seed #{{ match.p2.seed }}</span>
                 <div class="text-3xl md:text-4xl mb-2 md:mb-3">🍺</div>
-                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ match.p2.username }}</h3>
+                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ p2.username }}</h3>
             </div>
         </div>
 
-        <!-- Cups Differential Input (Hidden until winner is picked) -->
-        <div id="cupsSection" class="hidden mb-8 max-w-xs mx-auto">
+        <!-- Cups Differential Input -->
+        <div id="cupsSection" class="hidden mb-6 md:mb-8 max-w-xs mx-auto">
             <label class="block text-sm font-medium mb-2 text-indigo-300">How many cups did they win by?</label>
-            <input type="number" min="1" max="10" name="cups_won_by" id="cupsInput" required 
+            <input type="number" min="1" max="10" name="cups_won_by" id="cupsInput" required
                    class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-center text-xl text-white font-bold">
         </div>
 
-        <button type="submit" id="submitBtn" disabled 
+        <button type="submit" id="submitBtn" disabled
                 class="w-full bg-gray-600 text-gray-300 font-bold py-3 px-4 rounded-lg text-lg cursor-not-allowed transition-all">
             Submit Final Score
         </button>
@@ -48,27 +45,21 @@
 
 <script>
     function selectWinner(winnerId) {
-        // Update Hidden Input
         document.getElementById('winnerInput').value = winnerId;
-        
-        // Reset both cards visually
+
         const p1Id = "{{ p1.id }}";
         const p2Id = "{{ p2.id }}";
-        document.getElementById('card-' + p1Id).className = "flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-8 transition-all";
-        document.getElementById('card-' + p2Id).className = "flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-8 transition-all";
+        document.getElementById('card-' + p1Id).className = "flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all";
+        document.getElementById('card-' + p2Id).className = "flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all";
 
-        // Highlight the selected winner
-        document.getElementById('card-' + winnerId).className = "flex-1 cursor-pointer bg-gray-800 border-4 border-green-500 rounded-xl p-8 transition-all scale-105 shadow-[0_0_15px_rgba(34,197,94,0.4)]";
+        document.getElementById('card-' + winnerId).className = "flex-1 cursor-pointer bg-gray-800 border-4 border-green-500 rounded-xl p-4 md:p-8 transition-all scale-105 shadow-[0_0_15px_rgba(34,197,94,0.4)]";
 
-        // Reveal the "Cups won by" input
         document.getElementById('cupsSection').classList.remove('hidden');
-        
-        // Enable Submit Button
+
         const btn = document.getElementById('submitBtn');
         btn.disabled = false;
         btn.className = "w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg text-lg transition-all shadow-[0_0_10px_rgba(34,197,94,0.3)]";
-        
-        // Auto-focus the input
+
         document.getElementById('cupsInput').focus();
     }
 </script>
