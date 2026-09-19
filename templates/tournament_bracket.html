@@ -1,70 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="space-y-6">
-    <div class="flex justify-between items-center border-b border-gray-700 pb-4">
+<div class="space-y-4 md:space-y-6">
+
+    <!-- Top Bar: Compact title & return link -->
+    <div class="flex justify-between items-center border-b border-gray-700 pb-3 gap-2">
         <div>
-            <h1 class="text-3xl font-extrabold text-white">{{ tournament.name }}</h1>
-            <p class="text-sm text-gray-400">Single Elimination Bracket</p>
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold text-white truncate max-w-[200px] sm:max-w-none">{{ tournament.name }}</h1>
+            <p class="text-[11px] sm:text-xs text-gray-400">Single Elimination Bracket</p>
         </div>
-        <div class="flex gap-4">
-            <a href="/tournaments" class="text-gray-400 hover:text-white mt-2">← Past Tourneys</a>
-        </div>
+        <a href="/tournaments" class="text-xs sm:text-sm text-gray-400 hover:text-white font-medium whitespace-nowrap">
+            ← Past Tourneys
+        </a>
     </div>
 
+    <!-- Slimmed Champion Banner (Compact on phones) -->
     {% if tournament.winner %}
-    <div class="bg-yellow-900/40 border border-yellow-500/50 p-6 rounded-2xl text-center shadow-[0_0_30px_rgba(234,179,8,0.2)]">
-        <h2 class="text-3xl font-extrabold text-yellow-300">🏆 Tournament Champion: {{ tournament.winner.username }}</h2>
-        <p class="text-yellow-200/80 text-sm mt-1">This championship win has been awarded to their permanent trophy case.</p>
+    <div class="bg-yellow-950/40 border border-yellow-500/40 px-4 py-2.5 sm:py-3.5 rounded-xl text-center shadow-lg flex items-center justify-center gap-2">
+        <span class="text-lg sm:text-xl">🏆</span>
+        <div>
+            <span class="text-xs sm:text-sm uppercase tracking-wider text-yellow-400/80 font-bold">Champion:</span>
+            <span class="text-sm sm:text-base md:text-lg font-extrabold text-yellow-300 ml-1">{{ tournament.winner.username }}</span>
+        </div>
     </div>
     {% endif %}
 
+    <!-- Swipe Indicator for mobile -->
+    <div class="flex items-center justify-between text-[11px] text-gray-500 md:hidden px-1">
+        <span>Bracket Progression</span>
+        <span>Swipe horizontally →</span>
+    </div>
+
     <!-- Bracket Horizontal Scroll Container -->
-    <div class="overflow-x-auto pb-8">
-        <div class="flex gap-8 min-w-max items-center">
+    <div class="overflow-x-auto pb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
+        <div class="flex gap-4 sm:gap-6 md:gap-8 min-w-max items-start">
             {% for round in tournament.bracket %}
             {% set round_idx = loop.index0 %}
-            <div class="flex flex-col gap-6 w-72">
-                <h3 class="text-xs uppercase font-bold tracking-widest text-indigo-400 text-center bg-gray-800/80 py-2 rounded-lg border border-gray-700">
-                    {% if loop.last %}Championship Final{% elif loop.revindex == 2 %}Semifinals{% else %}Round {{ loop.index }}{% endif %}
+
+            <!-- Scaled column width for small screens -->
+            <div class="flex flex-col gap-4 w-56 sm:w-64 md:w-72">
+                <!-- Round Header -->
+                <h3 class="text-[10px] md:text-xs uppercase font-bold tracking-wider text-indigo-300 text-center bg-gray-800/90 py-1.5 rounded-lg border border-gray-700/80">
+                    {% if loop.last %}Finals{% elif loop.revindex == 2 %}Semifinals{% else %}Round {{ loop.index }}{% endif %}
                 </h3>
 
-                <div class="flex flex-col justify-around gap-6 flex-grow">
+                <!-- Matches Container -->
+                <div class="flex flex-col justify-around gap-4 flex-grow">
                     {% for match in round %}
                     {% set match_idx = loop.index0 %}
-                    <div class="bg-gray-800 border-2 {% if match.winner_id %}border-gray-700{% elif match.p1 and match.p2 %}border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.2)]{% else %}border-gray-800 opacity-60{% endif %} rounded-xl overflow-hidden">
-                        
+                    <div class="bg-gray-800 border {% if match.winner_id %}border-gray-700{% elif match.p1 and match.p2 %}border-indigo-500/60 shadow-[0_0_12px_rgba(99,102,241,0.2)]{% else %}border-gray-800/80 opacity-50{% endif %} rounded-lg overflow-hidden text-xs md:text-sm">
+
                         <!-- Player 1 Slot -->
-                        <div class="p-3 flex justify-between items-center border-b border-gray-700/60 {% if match.winner_id and match.p1 and match.winner_id == match.p1.id %}bg-green-950/40 font-bold text-green-300{% elif match.winner_id %}text-gray-500{% endif %}">
-                            <span class="truncate">
+                        <div class="px-2.5 py-1.5 sm:px-3 sm:py-2 flex justify-between items-center border-b border-gray-700/60 {% if match.winner_id and match.p1 and match.winner_id == match.p1.id %}bg-green-950/40 font-bold text-green-300{% elif match.winner_id %}text-gray-500{% endif %}">
+                            <span class="truncate pr-1">
                                 {% if match.p1 %}
-                                    <span class="text-xs text-gray-500 mr-1 font-mono">#{{ match.p1.seed }}</span>{{ match.p1.username }}
+                                    <span class="text-[10px] sm:text-xs text-gray-500 mr-1 font-mono">#{{ match.p1.seed }}</span>{{ match.p1.username }}
                                 {% else %}
-                                    <span class="italic text-gray-600">TBD</span>
+                                    <span class="italic text-gray-600 text-[11px]">TBD</span>
                                 {% endif %}
                             </span>
-                            <span class="font-mono text-sm font-bold">{% if match.score1 is not none %}{{ match.score1 }}{% endif %}</span>
+                            <span class="font-mono text-xs sm:text-sm font-bold">{% if match.score1 is not none %}{{ match.score1 }}{% endif %}</span>
                         </div>
 
                         <!-- Player 2 Slot -->
-                        <div class="p-3 flex justify-between items-center {% if match.winner_id and match.p2 and match.winner_id == match.p2.id %}bg-green-950/40 font-bold text-green-300{% elif match.winner_id %}text-gray-500{% endif %}">
-                            <span class="truncate">
+                        <div class="px-2.5 py-1.5 sm:px-3 sm:py-2 flex justify-between items-center {% if match.winner_id and match.p2 and match.winner_id == match.p2.id %}bg-green-950/40 font-bold text-green-300{% elif match.winner_id %}text-gray-500{% endif %}">
+                            <span class="truncate pr-1">
                                 {% if match.p2 %}
-                                    <span class="text-xs text-gray-500 mr-1 font-mono">#{{ match.p2.seed }}</span>{{ match.p2.username }}
+                                    <span class="text-[10px] sm:text-xs text-gray-500 mr-1 font-mono">#{{ match.p2.seed }}</span>{{ match.p2.username }}
                                 {% else %}
-                                    <span class="italic text-gray-600">TBD</span>
+                                    <span class="italic text-gray-600 text-[11px]">TBD</span>
                                 {% endif %}
                             </span>
-                            <span class="font-mono text-sm font-bold">{% if match.score2 is not none %}{{ match.score2 }}{% endif %}</span>
+                            <span class="font-mono text-xs sm:text-sm font-bold">{% if match.score2 is not none %}{{ match.score2 }}{% endif %}</span>
                         </div>
 
-                        <!-- Action Button -->
+                        <!-- Action / Status Button -->
                         {% if not match.winner_id and match.p1 and match.p2 %}
-                        <a href="/tournament/{{ tournament.id }}/play/{{ round_idx }}/{{ match_idx }}" class="block text-center bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold py-2 transition-colors">
+                        <a href="/tournament/{{ tournament.id }}/play/{{ round_idx }}/{{ match_idx }}" class="block text-center bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-xs font-bold py-1.5 transition-colors">
                             Play Match →
                         </a>
                         {% elif match.is_bye %}
-                        <div class="text-center text-[10px] text-gray-500 uppercase tracking-wider py-1 bg-gray-900/60">
-                            Advanced on BYE
+                        <div class="text-center text-[9px] text-gray-500 uppercase tracking-widest py-0.5 bg-gray-900/60">
+                            BYE
                         </div>
                         {% endif %}
                     </div>
