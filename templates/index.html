@@ -1,55 +1,63 @@
 {% extends "base.html" %}
 {% block content %}
+
+<!-- Global Active Pong Night Banner -->
 {% if active_pong_night %}
-    <div class="mb-8">
-        <a href="/pong-night/active" class="block w-full bg-purple-900 border-2 border-purple-500 hover:bg-purple-800 text-white text-center py-5 rounded-xl shadow-[0_0_25px_rgba(147,51,234,0.4)] transition-all group">
-            <h2 class="text-3xl font-extrabold flex items-center justify-center gap-3">
-                🍻 A Pong Night is Active!
-            </h2>
-            <p class="text-purple-300 text-lg font-medium mt-1 group-hover:underline">Click here to view the Queue & Live Games →</p>
-        </a>
-    </div>
-    {% endif %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
+<div class="mb-6 md:mb-8">
+    <a href="/pong-night/active" class="block w-full bg-purple-900 border-2 border-purple-500 hover:bg-purple-800 text-white text-center py-3 md:py-5 rounded-xl shadow-[0_0_25px_rgba(147,51,234,0.4)] transition-all group">
+        <h2 class="text-xl md:text-3xl font-extrabold flex items-center justify-center gap-2 md:gap-3">
+            🍻 A Pong Night is Active!
+        </h2>
+        <p class="text-purple-300 text-sm md:text-lg font-medium mt-1 group-hover:underline">Click here to view the Queue & Live Games →</p>
+    </a>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+
     <!-- Live Leaderboard -->
-    <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl">
-        <h2 class="text-xl font-bold mb-4 text-indigo-400 flex items-center gap-2">
+    <div class="lg:col-span-2 bg-gray-800 p-4 md:p-6 rounded-xl border border-gray-700 shadow-xl">
+        <h2 class="text-lg md:text-xl font-bold mb-4 text-indigo-400 flex items-center gap-2">
             🏆 Live Leaderboard
         </h2>
         <div class="overflow-x-auto">
-            <table id="leaderboardTable" class="w-full text-left text-sm text-gray-300">
-                <thead class="bg-gray-700 text-gray-400 uppercase text-xs">
+            <!-- Adjusted text size for mobile -->
+            <table id="leaderboardTable" class="w-full text-left text-xs md:text-sm text-gray-300">
+                <thead class="bg-gray-700 text-gray-400 uppercase text-[10px] md:text-xs">
                     <tr>
-                        <th class="p-3">Rank</th>
-                        <!-- Added sorting triggers to the headers -->
-                        <th class="p-3">Player</th>
-                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(2, 'number')">Elo ↕</th>
-                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(3, 'number')">Games Played ↕</th>
-                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(4, 'number')">Wins ↕</th>
-                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(5, 'number')">Losses ↕</th>
-                        <th class="p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(6, 'number')">Win % ↕</th>
+                        <th class="p-2 md:p-3">Rank</th>
+                        <th class="p-2 md:p-3">Player</th>
+                        <th class="p-2 md:p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(2, 'number')">Elo ↕</th>
+                        <!-- Hidden on mobile -->
+                        <th class="hidden sm:table-cell p-2 md:p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(3, 'number')">Games ↕</th>
+                        <th class="p-2 md:p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(4, 'number')">W ↕</th>
+                        <th class="p-2 md:p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(5, 'number')">L ↕</th>
+                        <!-- Hidden on mobile -->
+                        <th class="hidden sm:table-cell p-2 md:p-3 cursor-pointer hover:text-white transition-colors" onclick="sortTable(6, 'number')">Win % ↕</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for row in leaderboard %}
                     <tr class="border-b border-gray-700 hover:bg-gray-750">
-                        <td class="p-3 font-bold">{{ loop.index }}</td>
+                        <td class="p-2 md:p-3 font-bold">{{ loop.index }}</td>
 
-                        <td class="p-3 font-medium text-white">
+                        <!-- whitespace-nowrap prevents names from stacking weirdly -->
+                        <td class="p-2 md:p-3 font-medium text-white whitespace-nowrap">
                             <a href="/profile/{{ row.user_id }}" class="hover:text-indigo-400 underline decoration-indigo-500/50 underline-offset-4">
                                 {{ row.username }}
                             </a>
                         </td>
 
-                        <td class="p-3 font-bold text-yellow-400">{{ row.elo }}</td>
+                        <td class="p-2 md:p-3 font-bold text-yellow-400">{{ row.elo }}</td>
 
-                        <!-- New Games Played Column -->
-                        <td class="p-3 font-bold text-gray-300">{{ row.total_games }}</td>
+                        <!-- Hidden on mobile -->
+                        <td class="hidden sm:table-cell p-2 md:p-3 font-bold text-gray-300">{{ row.total_games }}</td>
 
-                        <td class="p-3 text-green-400">{{ row.wins }}</td>
-                        <td class="p-3 text-red-400">{{ row.losses }}</td>
-                        <td class="p-3 font-semibold text-indigo-300">{{ row.win_rate }}%</td>
+                        <td class="p-2 md:p-3 text-green-400">{{ row.wins }}</td>
+                        <td class="p-2 md:p-3 text-red-400">{{ row.losses }}</td>
+
+                        <!-- Hidden on mobile -->
+                        <td class="hidden sm:table-cell p-2 md:p-3 font-semibold text-indigo-300">{{ row.win_rate }}%</td>
                     </tr>
                     {% else %}
                     <tr id="empty-row"><td colspan="7" class="p-4 text-center text-gray-500">No players registered yet.</td></tr>
@@ -60,13 +68,12 @@
     </div>
 
     <!-- Recent Match History -->
-    <!-- Recent Match History -->
-    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-xl flex flex-col h-full">
-        <h2 class="text-xl font-bold mb-4 text-indigo-400">⚡ Recent Games</h2>
+    <div class="bg-gray-800 p-4 md:p-6 rounded-xl border border-gray-700 shadow-xl flex flex-col h-full">
+        <h2 class="text-lg md:text-xl font-bold mb-4 text-indigo-400">⚡ Recent Games</h2>
         <div class="space-y-3 flex-grow">
             {% for g in games %}
-            <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-sm flex justify-between items-center">
-                <div class="flex-1">
+            <div class="bg-gray-900 p-3 rounded-lg border border-gray-700 text-xs md:text-sm flex justify-between items-center">
+                <div class="flex-1 truncate pr-2">
                     <span class="{% if g.winner.username == g.player1.username %}text-green-400 font-bold{% else %}text-gray-400{% endif %}">
                         {{ g.player1.username }}
                     </span>
@@ -75,7 +82,7 @@
                         {{ g.player2.username }}
                     </span>
                 </div>
-                <div class="font-mono text-base font-bold bg-gray-800 px-2 py-1 rounded">
+                <div class="font-mono text-sm md:text-base font-bold bg-gray-800 px-2 py-1 rounded whitespace-nowrap">
                     {{ g.score1 }} - {{ g.score2 }}
                 </div>
             </div>
@@ -84,19 +91,36 @@
             {% endfor %}
         </div>
 
-        <!-- NEW: View More Button appears if there are 6 games -->
         {% if games|length == 6 %}
         <div class="mt-4 pt-4 border-t border-gray-700">
-            <a href="/catalog" class="block w-full text-center bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg transition-colors">
+            <a href="/catalog" class="block w-full text-center bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-2 px-4 rounded-lg transition-colors text-sm md:text-base">
                 View Full Game Catalog
             </a>
         </div>
         {% endif %}
     </div>
-
 </div>
 
-<!-- Interactive Sorting Logic -->
+<!-- Tournament Generation Popup Modal -->
+{% if session.get('last_pool_play') %}
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+    <div class="bg-gray-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.4)] max-w-lg w-full text-center">
+        <div class="text-5xl md:text-6xl mb-4">🏆</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-2">Pong Night Complete!</h2>
+        <p class="text-sm md:text-base text-gray-300 mb-6 md:mb-8">Would you like to instantly generate a seeded tournament using tonight's stats?</p>
+
+        <div class="flex flex-col gap-3">
+            <a href="/tournament/setup" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 md:py-4 rounded-xl text-base md:text-lg transition-colors shadow-lg">
+                Create Tournament
+            </a>
+            <a href="/dismiss-tournament-popup" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-2 md:py-3 rounded-xl transition-colors text-sm md:text-base">
+                Skip for now
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script>
     let currentSortColumn = -1;
     let sortDescending = true;
@@ -106,10 +130,8 @@
         const tbody = table.querySelector("tbody");
         const rows = Array.from(tbody.querySelectorAll("tr"));
 
-        // Don't try to sort if the table is empty
         if (rows.length <= 1 && rows[0].id === 'empty-row') return;
 
-        // Toggle sort direction if clicking the same column, otherwise default to descending (highest first)
         if (currentSortColumn === columnIndex) {
             sortDescending = !sortDescending;
         } else {
@@ -130,30 +152,10 @@
             }
         });
 
-        // Re-append rows in the new order and update the "Rank" column (index 0) dynamically
         rows.forEach((row, index) => {
             row.querySelectorAll("td")[0].innerText = index + 1;
             tbody.appendChild(row);
         });
     }
 </script>
-<!-- Tournament Generation Popup Modal -->
-{% if session.get('last_pool_play') %}
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-    <div class="bg-gray-800 p-8 rounded-2xl border-2 border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.4)] max-w-lg w-full text-center">
-        <div class="text-6xl mb-4">🏆</div>
-        <h2 class="text-3xl font-extrabold text-white mb-2">Pong Night Complete!</h2>
-        <p class="text-gray-300 mb-8">Would you like to instantly generate a seeded tournament using tonight's stats?</p>
-
-        <div class="flex flex-col gap-3">
-            <a href="/tournament/setup" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl text-lg transition-colors shadow-lg">
-                Create Tournament
-            </a>
-            <a href="/dismiss-tournament-popup" class="w-full bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-3 rounded-xl transition-colors">
-                Skip for now
-            </a>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}

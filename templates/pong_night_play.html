@@ -11,19 +11,24 @@
         <!-- This hidden input is the secret sauce for Pong Night -->
         <input type="hidden" name="pong_night_idx" value="{{ match_idx }}">
 
-        <div class="flex flex-col md:flex-row gap-6 justify-center mb-8">
-            <div id="card-{{ match.p1.id }}" onclick="selectWinner('{{ match.p1.id }}')" 
-                 class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-8 transition-all hover:border-purple-400">
-                <div class="text-4xl mb-3">🍺</div>
-                <h3 class="text-xl font-bold text-white">{{ match.p1.username }}</h3>
+        <!-- Shrunk the gap and card padding for mobile -->
+        <div class="flex flex-col md:flex-row gap-4 md:gap-6 justify-center mb-6 md:mb-8">
+            <div id="card-{{ match.p1.id }}" onclick="selectWinner('{{ match.p1.id }}')"
+                 class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all hover:border-indigo-400">
+                <!-- If this is Tournament play, keep the seed text. If Pong Night, just delete this span line -->
+                <span class="text-[10px] md:text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1 md:mb-2">Seed #{{ match.p1.seed }}</span>
+                <div class="text-3xl md:text-4xl mb-2 md:mb-3">🍺</div>
+                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ match.p1.username }}</h3>
             </div>
-            
-            <div class="flex items-center justify-center font-bold text-gray-500 text-xl">VS</div>
 
-            <div id="card-{{ match.p2.id }}" onclick="selectWinner('{{ match.p2.id }}')" 
-                 class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-8 transition-all hover:border-purple-400">
-                <div class="text-4xl mb-3">🍺</div>
-                <h3 class="text-xl font-bold text-white">{{ match.p2.username }}</h3>
+            <div class="flex items-center justify-center font-bold text-gray-500 text-lg md:text-xl py-2 md:py-0">VS</div>
+
+            <div id="card-{{ match.p2.id }}" onclick="selectWinner('{{ match.p2.id }}')"
+                 class="flex-1 cursor-pointer bg-gray-900 border-2 border-gray-700 rounded-xl p-4 md:p-8 transition-all hover:border-indigo-400">
+                <!-- If this is Tournament play, keep the seed text. If Pong Night, just delete this span line -->
+                <span class="text-[10px] md:text-xs text-indigo-400 font-bold uppercase tracking-wider block mb-1 md:mb-2">Seed #{{ match.p2.seed }}</span>
+                <div class="text-3xl md:text-4xl mb-2 md:mb-3">🍺</div>
+                <h3 class="text-lg md:text-xl font-bold text-white truncate">{{ match.p2.username }}</h3>
             </div>
         </div>
 
