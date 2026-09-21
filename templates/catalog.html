@@ -20,24 +20,30 @@
         <!-- Games Grid (Left to Right) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for g in day_games %}
-            <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg flex flex-col justify-center items-center text-center transition hover:border-indigo-500">
-                
-                <!-- Player vs Player -->
-                <div class="text-lg mb-4 w-full flex justify-center items-center gap-3">
-                    <span class="truncate max-w-[40%] {% if g.winner.username == g.player1.username %}text-green-400 font-bold text-xl{% else %}text-gray-400{% endif %}">
+            <!-- Inside your games loop in catalog.html, replace your game card div with this: -->
+            <div class="bg-gray-900 p-3 md:p-4 rounded-lg border border-gray-700 text-sm md:text-base flex justify-between items-center group">
+                <div class="flex-1 truncate pr-4">
+                    <span class="{% if g.winner.username == g.player1.username %}text-green-400 font-bold{% else %}text-gray-400{% endif %}">
                         {{ g.player1.username }}
                     </span>
-                    <span class="text-gray-600 font-bold text-sm">VS</span>
-                    <span class="truncate max-w-[40%] {% if g.winner.username == g.player2.username %}text-green-400 font-bold text-xl{% else %}text-gray-400{% endif %}">
+                    <span class="text-gray-500 mx-2 font-bold">VS</span>
+                    <span class="{% if g.winner.username == g.player2.username %}text-green-400 font-bold{% else %}text-gray-400{% endif %}">
                         {{ g.player2.username }}
                     </span>
                 </div>
 
-                <!-- Score Below -->
-                <div class="font-mono text-3xl font-bold bg-gray-900 px-6 py-2 rounded-lg text-white border border-gray-700 shadow-inner">
-                    {{ g.score1 }} - {{ g.score2 }}
+                <div class="flex items-center gap-3 md:gap-4">
+                    <div class="font-mono text-base md:text-lg font-bold bg-gray-800 px-3 py-1 rounded border border-gray-700 text-white">
+                        {{ g.score1 }} - {{ g.score2 }}
+                    </div>
+
+                    <!-- New Edit Button -->
+                    {% if is_admin %}
+                    <a href="/game/edit/{{ g.id }}" class="text-gray-500 hover:text-indigo-400 transition-colors p-1" title="Edit Game">
+                        ✏️
+                    </a>
+                    {% endif %}
                 </div>
-                
             </div>
             {% endfor %}
         </div>

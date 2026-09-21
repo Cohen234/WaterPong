@@ -15,7 +15,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY
 )
-
+ADMIN_EMAIL = "cohencallaway46@gmail.com"
 
 # --- Helpers ---
 def get_current_user():
@@ -166,21 +166,15 @@ def catalog():
     if not user:
         return redirect(url_for("login"))
 
-    # Fetch ALL games
     games_res = supabase.from_("games").select(
         "id, score1, score2, created_at, player1:player1_id(username), player2:player2_id(username), winner:winner_id(username)"
     ).order("created_at", desc=True).execute()
 
     all_games = games_res.data or []
 
-    # Group games by Date
     grouped_games = {}
     for g in all_games:
-        # Supabase timestamps look like '2026-10-10T14:30:00'
-        # We split at the "T" to grab just the "YYYY-MM-DD" part
         date_part = g["created_at"].split("T")[0]
-
-        # Format to "October 10, 2026"
         dt = datetime.strptime(date_part, "%Y-%m-%d")
         formatted_date = dt.strftime("%B %d, %Y")
 
@@ -188,7 +182,12 @@ def catalog():
             grouped_games[formatted_date] = []
         grouped_games[formatted_date].append(g)
 
-    return render_template("catalog.html", user=user, grouped_games=grouped_games)
+    # NEW: Secure, case-insensitive admin check
+    is_admin = False
+    if user and user.get("email", "").lower() == ADMIN_EMAIL.lower():
+        is_admin = True
+
+    return render_template("catalog.html", user=user, grouped_games=grouped_games, is_admin=is_admin)
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -535,6 +534,81 @@ def tournament_bracket(tournament_id):
     tournament = t_res.data
 
     return render_template("tournament_bracket.html", user=user, tournament=tournament)
+
+
+@app.route("/game/edit/<int:game_id>", methods=["GET", "POST"])
+def edit_game(game_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+    if user.get("email", "").lower() != ADMIN_EMAIL.lower():
+        flash("Only the commissioner can edit games!", "danger")
+        return redirect(url_for("catalog"))
+
+    game_res = supabase.from_("games").select(
+        "*, player1:player1_id(id, username), player2:player2_id(id, username)"
+    ).eq("id", game_id).single().execute()
+
+    game = game_res.data
+
+    if request.method == "POST":
+        winner_id = request.form.get("winner_id")
+        cups_won_by = int(request.form.get("cups_won_by", 0))
+        new_created_at = request.form.get("created_at")
+
+        if not winner_id:
+            flash("You must select a winner!", "danger")
+            return redirect(url_for("edit_game", game_id=game_id))
+
+        score1 = 10 if winner_id == game["player1"]["id"] else max(0, 10 - cups_won_by)
+        score2 = 10 if winner_id == game["player2"]["id"] else max(0, 10 - cups_won_by)
+
+        # 1. Update the game record, including the retro-active timestamp
+        supabase.from_("games").update({
+            "winner_id": winner_id,
+            "score1": score1,
+            "score2": score2,
+            "created_at": new_created_at
+        }).eq("id", game_id).execute()
+
+        # --- ELO RECALCULATION ENGINE ---
+        profiles_res = supabase.from_("profiles").select("id").execute()
+        live_elos = {p["id"]: 1200 for p in profiles_res.data}
+
+        # The order("created_at") ensures the timeline is mathematically perfect
+        all_games = supabase.from_("games").select("*").order("created_at").execute().data
+
+        for g in all_games:
+            p1_id = g["player1_id"]
+            p2_id = g["player2_id"]
+            w_id = g["winner_id"]
+
+            if p1_id not in live_elos: live_elos[p1_id] = 1200
+            if p2_id not in live_elos: live_elos[p2_id] = 1200
+
+            r1, r2 = live_elos[p1_id], live_elos[p2_id]
+            e1 = 1 / (1 + 10 ** ((r2 - r1) / 400))
+            e2 = 1 / (1 + 10 ** ((r1 - r2) / 400))
+
+            s1 = 1 if w_id == p1_id else 0
+            s2 = 1 if w_id == p2_id else 0
+
+            cups_diff = abs(g["score1"] - g["score2"])
+            k_adj = 32 * (1 + (cups_diff / 10))
+
+            live_elos[p1_id] = round(r1 + k_adj * (s1 - e1))
+            live_elos[p2_id] = round(r2 + k_adj * (s2 - e2))
+
+        for uid, final_elo in live_elos.items():
+            supabase.from_("profiles").update({"elo": final_elo}).eq("id", uid).execute()
+
+        flash("Game updated and all Elo ratings have been perfectly recalibrated!", "success")
+        return redirect(url_for("catalog"))
+
+    # Format the Supabase timestamp (2026-10-10T14:30:00) into the HTML requirement (YYYY-MM-DDThh:mm)
+    formatted_date = game["created_at"][:16] if game.get("created_at") else ""
+
+    return render_template("edit_game.html", user=user, game=game, formatted_date=formatted_date)
 @app.route("/tournament/setup", methods=["GET", "POST"])
 def tournament_setup():
     user = get_current_user()
